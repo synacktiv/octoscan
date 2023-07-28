@@ -1,0 +1,14 @@
+# https://golangci-lint.run/usage/configuration/
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - typecheck
+    - gofmt
+    - goimports
+    - misspell
+  disable:
+    - unused
