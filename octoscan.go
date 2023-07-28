@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"octoscan/common"
 	"octoscan/core/scanner"
 	"os"
@@ -9,16 +8,6 @@ import (
 	"github.com/docopt/docopt-go"
 	"github.com/rhysd/actionlint"
 )
-
-// Command represents entire actionlint command. Given stdin/stdout/stderr are used for input/output.
-type Command struct {
-	// Stdin is a reader to read input from stdin
-	Stdin io.Reader
-	// Stdout is a writer to write output to stdout
-	Stdout io.Writer
-	// Stderr is a writer to write output to stderr
-	Stderr io.Writer
-}
 
 var usage = `octoscan
 
@@ -30,7 +19,7 @@ Options:
 	-v, --version
 	-d, --debug
 	--verbose
-	
+
 Args:
 	-f, --file <file>
 
