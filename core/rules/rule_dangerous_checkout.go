@@ -15,7 +15,7 @@ type RuleDangerousCheckout struct {
 func NewRuleDangerousCheckout() *RuleDangerousCheckout {
 
 	return &RuleDangerousCheckout{
-		RuleBase: *actionlint.NewRuleBase(
+		RuleBase: actionlint.NewRuleBase(
 			"dangerous-checkout",
 			"Check for dangerous checkout.",
 		),

@@ -19,7 +19,7 @@ var dangerousActions = []string{
 func NewRuleDangerousAction() *RuleDangerousAction {
 
 	return &RuleDangerousAction{
-		RuleBase: *actionlint.NewRuleBase(
+		RuleBase: actionlint.NewRuleBase(
 			"dangerous-action",
 			"Check for dangerous actions depending on some context.",
 		),

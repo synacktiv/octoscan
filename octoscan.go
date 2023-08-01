@@ -2,7 +2,7 @@ package main
 
 import (
 	"octoscan/common"
-	"octoscan/core/scanner"
+	"octoscan/core"
 	"os"
 
 	"github.com/docopt/docopt-go"
@@ -25,33 +25,40 @@ Args:
 
 `
 
-func runScanner(args *docopt.Opts, opts *scanner.ScannerOptions) ([]*actionlint.Error, error) {
+func runScanner(args *docopt.Opts, opts *actionlint.LinterOptions) ([]*actionlint.Error, error) {
 
-	l, err := scanner.NewScanner(os.Stdout, opts)
+	opts.OnRulesCreated = core.OnRulesCreated
+
+	// Add default ignore pattern
+	// by default actionlint add error when parsing Workflows files
+	opts.IgnorePatterns = append(opts.IgnorePatterns, "unexpected key \".+\" for ")
+	opts.LogWriter = os.Stderr
+
+	l, err := actionlint.NewLinter(os.Stdout, opts)
 	if err != nil {
 		return nil, err
 	}
 
 	file, _ := args.String("<file>")
 
-	return l.ScanFile(file, nil)
+	return l.LintFile(file, nil)
 }
 
 func main() {
 
-	var opts scanner.ScannerOptions
+	var opts actionlint.LinterOptions
 
 	parser := &docopt.Parser{}
 	args, _ := parser.ParseArgs(usage, nil, "octoscan version 0.1")
 
 	if d, _ := args.Bool("--debug"); d {
-		common.Log.SetLevel(common.LogLevelDebug)
+		opts.Debug = true
 	}
 
 	common.Log.Debug(args)
 
 	if v, _ := args.Bool("--verbose"); v {
-		common.Log.SetLevel(common.LogLevelVerbose)
+		opts.Verbose = true
 	}
 
 	runScanner(&args, &opts)
