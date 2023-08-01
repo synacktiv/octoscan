@@ -1,6 +1,7 @@
 package scanner
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -11,10 +12,13 @@ import (
 	"time"
 
 	"octoscan/common"
+	"octoscan/core/rules"
 
 	"github.com/fatih/color"
 	"github.com/mattn/go-colorable"
 	"github.com/rhysd/actionlint"
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
 )
 
 // ColorOptionKind is kind of colorful output behavior.
@@ -34,8 +38,6 @@ const (
 // ScannerOptions is set of options for Scanner instance. This struct should be created by user and
 // given to NewScanner factory function.
 type ScannerOptions struct {
-	// Verbose is flag if verbose log output is enabled.
-	Verbose bool
 	// Color is option for colorizing error outputs. See ColorOptionKind document for each enum values.
 	Color ColorOptionKind
 	// Oneline is flag if one line output is enabled. When enabling it, one error is output per one
@@ -89,7 +91,13 @@ func NewScanner(out io.Writer, opts *ScannerOptions) (*Scanner, error) {
 		}
 	}
 
-	ignore := make([]*regexp.Regexp, 0, len(opts.IgnorePatterns))
+	ignore := []*regexp.Regexp{}
+
+	// Add default ignore pattern
+	// by default actionlint add error when parsing Workflows files
+	r, _ := regexp.Compile("unexpected key \".+\" for ")
+	ignore = append(ignore, r)
+
 	for _, s := range opts.IgnorePatterns {
 		r, err := regexp.Compile(s)
 		if err != nil {
@@ -125,6 +133,116 @@ func NewScanner(out io.Writer, opts *ScannerOptions) (*Scanner, error) {
 	}, nil
 }
 
+// ScanFiles scans YAML workflow files and outputs the errors to given writer. It applies scans
+// rules to all given files. The project parameter can be nil. In the case, a project is detected
+// from the file path.
+func (l *Scanner) ScanFiles(filepaths []string, project *actionlint.Project) ([]*actionlint.Error, error) {
+	n := len(filepaths)
+	switch n {
+	case 0:
+		return []*actionlint.Error{}, nil
+	case 1:
+		return l.ScanFile(filepaths[0], project)
+	}
+
+	common.Log.Verbose(fmt.Sprintf("Linting %v files", n))
+
+	cwd := l.cwd
+	proc := actionlint.NewConcurrentProcess(runtime.NumCPU())
+	sema := semaphore.NewWeighted(int64(runtime.NumCPU()))
+	ctx := context.Background()
+	dbg := common.Log.DebugWriter()
+	acf := actionlint.NewLocalActionsCacheFactory(dbg)
+	rwcf := actionlint.NewLocalReusableWorkflowCacheFactory(cwd, dbg)
+
+	type workspace struct {
+		path string
+		errs []*actionlint.Error
+		src  []byte
+	}
+
+	ws := make([]workspace, 0, len(filepaths))
+	for _, p := range filepaths {
+		ws = append(ws, workspace{path: p})
+	}
+
+	eg := errgroup.Group{}
+	for i := range ws {
+		// Each element of ws is accessed by single goroutine so mutex is unnecessary
+		w := &ws[i]
+		p := project
+		if p == nil {
+			// This method modifies state of l.projects so it cannot be called in parallel.
+			// Before entering goroutine, resolve project instance.
+			p = l.projects.At(w.path)
+		}
+		ac := acf.GetCache(p) // #173
+		rwc := rwcf.GetCache(p)
+
+		eg.Go(func() error {
+			// Bound concurrency on reading files to avoid "too many files to open" error (issue #3)
+			err := sema.Acquire(ctx, 1)
+			if err != nil {
+				return fmt.Errorf("could not acquire context: %w", err)
+			}
+
+			src, err := os.ReadFile(w.path)
+			sema.Release(1)
+			if err != nil {
+				return fmt.Errorf("could not read %q: %w", w.path, err)
+			}
+
+			if cwd != "" {
+				if r, err := filepath.Rel(cwd, w.path); err == nil {
+					w.path = r // Use relative path if possible
+				}
+			}
+			errs, err := l.check(w.path, src, p, proc, ac, rwc)
+			if err != nil {
+				return fmt.Errorf("fatal error while checking %s: %w", w.path, err)
+			}
+			w.src = src
+			w.errs = errs
+			return nil
+		})
+	}
+
+	proc.Wait()
+	if err := eg.Wait(); err != nil {
+		return nil, err
+	}
+
+	total := 0
+	for i := range ws {
+		total += len(ws[i].errs)
+	}
+
+	all := make([]*actionlint.Error, 0, total)
+	if l.errFmt != nil {
+		temp := make([]*actionlint.ErrorTemplateFields, 0, total)
+		for i := range ws {
+			w := &ws[i]
+			for _, err := range w.errs {
+				temp = append(temp, err.GetTemplateFields(w.src))
+			}
+			all = append(all, w.errs...)
+		}
+		if err := l.errFmt.Print(l.out, temp); err != nil {
+			return nil, err
+		}
+	} else {
+		for i := range ws {
+			w := &ws[i]
+			l.printErrors(w.errs, w.src)
+			all = append(all, w.errs...)
+		}
+	}
+
+	common.Log.Verbose(fmt.Sprintf("Found %v errors in %v files", total, n))
+
+	return all, nil
+}
+
 // ScanFile scan one YAML workflow file and outputs the errors to given writer. The project
 // parameter can be nil. In the case, the project is detected from the given path.
 func (l *Scanner) ScanFile(path string, project *actionlint.Project) ([]*actionlint.Error, error) {
@@ -143,12 +261,12 @@ func (l *Scanner) ScanFile(path string, project *actionlint.Project) ([]*actionl
 		}
 	}
 
-	proc := newConcurrentProcess(runtime.NumCPU())
+	proc := actionlint.NewConcurrentProcess(runtime.NumCPU())
 	dbg := common.Log.DebugWriter()
 	localActions := actionlint.NewLocalActionsCache(project, dbg)
 	localReusableWorkflows := actionlint.NewLocalReusableWorkflowCache(project, l.cwd, dbg)
 	errs, err := l.check(path, src, project, proc, localActions, localReusableWorkflows)
-	proc.wait()
+	proc.Wait()
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +283,7 @@ func (l *Scanner) check(
 	path string,
 	content []byte,
 	project *actionlint.Project,
-	proc *concurrentProcess,
+	proc *actionlint.ConcurrentProcess,
 	localActions *actionlint.LocalActionsCache,
 	localReusableWorkflows *actionlint.LocalReusableWorkflowCache,
 ) ([]*actionlint.Error, error) {
@@ -189,6 +307,8 @@ func (l *Scanner) check(
 
 		rules := []actionlint.Rule{
 			actionlint.NewRuleCredentials(),
+			rules.NewRuleDangerousAction(),
+			rules.NewRuleDangerousCheckout(),
 		}
 
 		//TODO: shellcheck
@@ -215,12 +335,11 @@ func (l *Scanner) check(
 			all = append(all, errs...)
 		}
 
-		// TODO
-		//if l.errFmt != nil {
-		//	for _, rule := range rules {
-		//		l.errFmt.RegisterRule(rule)
-		//	}
-		//}
+		if l.errFmt != nil {
+			for _, rule := range rules {
+				l.errFmt.RegisterRule(rule)
+			}
+		}
 	}
 
 	if len(l.ignorePats) > 0 {
