@@ -13,6 +13,9 @@ type RuleDangerousAction struct {
 
 var dangerousActions = []string{
 	"dawidd6/action-download-artifact",
+	"aochmann/actions-download-artifact",
+	"bettermarks/action-artifact-download",
+	"blablacar/action-download-last-artifact",
 }
 
 // NewRuleDangerousAction creates new RuleDangerousAction instance.
