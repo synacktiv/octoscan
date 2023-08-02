@@ -28,6 +28,7 @@ Args:
 func runScanner(args *docopt.Opts, opts *actionlint.LinterOptions) ([]*actionlint.Error, error) {
 
 	opts.OnRulesCreated = core.OnRulesCreated
+	opts.Shellcheck = "shellcheck"
 
 	// Add default ignore pattern
 	// by default actionlint add error when parsing Workflows files
