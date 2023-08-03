@@ -14,7 +14,6 @@ type RuleDangerousWrite struct {
 
 // NewRuleDangerousCheckout creates new RuleDangerousCheckout instance.
 func NewRuleDangerousWrite() *RuleDangerousWrite {
-
 	return &RuleDangerousWrite{
 		RuleBase: actionlint.NewRuleBase(
 			"dangerous-write",
@@ -25,7 +24,6 @@ func NewRuleDangerousWrite() *RuleDangerousWrite {
 
 // VisitStep is callback when visiting Step node.
 func (rule *RuleDangerousWrite) VisitStep(n *actionlint.Step) error {
-
 	e, ok := n.Exec.(*actionlint.ExecRun)
 	if !ok {
 		return nil
@@ -142,12 +140,10 @@ func searchInScript(script string, re *regexp.Regexp) *actionlint.Pos {
 
 		col := re.FindStringIndex(scanner.Text())
 		if col != nil {
-
 			return &actionlint.Pos{
 				Line: line,
 				Col:  col[1],
 			}
-
 		}
 		line++
 	}

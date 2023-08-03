@@ -13,7 +13,6 @@ type RuleDangerousCheckout struct {
 
 // NewRuleDangerousCheckout creates new RuleDangerousCheckout instance.
 func NewRuleDangerousCheckout() *RuleDangerousCheckout {
-
 	return &RuleDangerousCheckout{
 		RuleBase: actionlint.NewRuleBase(
 			"dangerous-checkout",
@@ -25,7 +24,6 @@ func NewRuleDangerousCheckout() *RuleDangerousCheckout {
 
 // VisitStep is callback when visiting Step node.
 func (rule *RuleDangerousCheckout) VisitStep(n *actionlint.Step) error {
-
 	// For now we only trigger the rule once
 	// might be a good idea to trigger the rule for each checkout
 	if rule.checkoutPos != nil {
@@ -54,7 +52,6 @@ func (rule *RuleDangerousCheckout) VisitStep(n *actionlint.Step) error {
 
 // VisitWorkflowPost is callback when visiting Workflow node after visiting its children
 func (rule *RuleDangerousCheckout) VisitWorkflowPost(n *actionlint.Workflow) error {
-
 	if rule.checkoutPos != nil {
 		for _, e := range n.On {
 			if e, ok := e.(*actionlint.WebhookEvent); ok {

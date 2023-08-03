@@ -15,8 +15,10 @@ const (
 	LogLevelDebug
 )
 
-var Log *Logger = NewLogger()
-var logLevel LogLevel = LogLevelNormal
+var (
+	Log      = NewLogger()
+	logLevel = LogLevelNormal
+)
 
 type Logger struct {
 	writer   io.Writer

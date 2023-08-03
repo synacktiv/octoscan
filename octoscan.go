@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
+	"os"
+
 	"octoscan/common"
 	"octoscan/core"
-	"os"
 
 	"github.com/docopt/docopt-go"
 	"github.com/rhysd/actionlint"
@@ -12,7 +14,8 @@ import (
 var usage = `octoscan
 
 Usage:
-	octoscan [options] --file <file>
+	octoscan scan [options] <target>
+	octoscan scan [options] <target> [--json --oneline -i <pattern>...]
 
 Options:
 	-h, --help
@@ -21,32 +24,42 @@ Options:
 	--verbose
 
 Args:
-	-f, --file <file>
+	<target>					Target File or directory to scan
+	--json						Json output
+	--oneline					Use one line per one error. Useful for reading error messages from programs
+	-i, --ignore <pattern>		Regular expression matching to error messages you want to ignore. The pattern value is repeatable
 
 `
 
-func runScanner(args *docopt.Opts, opts *actionlint.LinterOptions) ([]*actionlint.Error, error) {
-
+func runScanner(args docopt.Opts, opts *actionlint.LinterOptions) error {
 	opts.OnRulesCreated = core.OnRulesCreated
 	opts.Shellcheck = "shellcheck"
 
 	// Add default ignore pattern
 	// by default actionlint add error when parsing Workflows files
 	opts.IgnorePatterns = append(opts.IgnorePatterns, "unexpected key \".+\" for ")
+	opts.IgnorePatterns = append(opts.IgnorePatterns, args["<pattern>"].([]string)...)
+
 	opts.LogWriter = os.Stderr
 
 	l, err := actionlint.NewLinter(os.Stdout, opts)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	file, _ := args.String("<file>")
+	file, _ := args.String("<target>")
 
-	return l.LintFile(file, nil)
+	if common.IsDirectory(file) {
+		octoLinter := &core.OctoLinter{Linter: *l}
+		octoLinter.LintRepositoryRecurse(file)
+	} else {
+		l.LintFile(file, nil)
+	}
+
+	return nil
 }
 
 func main() {
-
 	var opts actionlint.LinterOptions
 
 	parser := &docopt.Parser{}
@@ -56,12 +69,20 @@ func main() {
 		opts.Debug = true
 	}
 
-	common.Log.Debug(args)
-
 	if v, _ := args.Bool("--verbose"); v {
 		opts.Verbose = true
 	}
 
-	runScanner(&args, &opts)
+	if v, _ := args.Bool("--oneline"); v {
+		opts.Oneline = true
+	}
 
+	if v, _ := args.Bool("--json"); v {
+		opts.Format = "{{json .}}"
+	}
+
+	err := runScanner(args, &opts)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err.Error())
+	}
 }

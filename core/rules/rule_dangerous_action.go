@@ -20,7 +20,6 @@ var dangerousActions = []string{
 
 // NewRuleDangerousAction creates new RuleDangerousAction instance.
 func NewRuleDangerousAction() *RuleDangerousAction {
-
 	return &RuleDangerousAction{
 		RuleBase: actionlint.NewRuleBase(
 			"dangerous-action",
@@ -32,7 +31,6 @@ func NewRuleDangerousAction() *RuleDangerousAction {
 
 // VisitJobPre is callback when visiting Job node before visiting its children.
 func (rule *RuleDangerousAction) VisitJobPre(n *actionlint.Job) error {
-
 	rule.fillJobsCache(n)
 	return nil
 }
@@ -119,7 +117,6 @@ func (rule *RuleDangerousAction) checkRepoAction(spec string, exec *actionlint.E
 }
 
 func (rule *RuleDangerousAction) fillJobsCache(n *actionlint.Job) {
-
 	externalActionsCache := []string{}
 	for _, step := range n.Steps {
 		e, ok := step.Exec.(*actionlint.ExecAction)
@@ -130,5 +127,4 @@ func (rule *RuleDangerousAction) fillJobsCache(n *actionlint.Job) {
 	}
 
 	rule.jobsCache[n.ID.Value] = externalActionsCache
-
 }

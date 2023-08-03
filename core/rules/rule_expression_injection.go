@@ -37,7 +37,6 @@ type RuleExpressionInjection struct {
 
 // NewRuleExpression creates new RuleExpression instance.
 func NewRuleExpressionInjection() *RuleExpressionInjection {
-
 	untrustedInputSearchRoots := actionlint.BuiltinUntrustedInputs
 
 	for _, e := range customUntrustedInputSearchRoots {
@@ -80,6 +79,8 @@ func (rule *RuleExpressionInjection) VisitStep(n *actionlint.Step) error {
 		}
 	}
 
+	cleanLogMessages(rule.Errs())
+
 	return nil
 }
 
@@ -90,7 +91,6 @@ func (rule *RuleExpressionInjection) checkString(str *actionlint.String, workflo
 	}
 
 	rule.checkExprsIn(str.Value, str.Pos, str.Quoted, true, workflowKey)
-
 }
 
 func (rule *RuleExpressionInjection) checkEnv(env *actionlint.Env, workflowKey string) {
@@ -134,7 +134,6 @@ func (rule *RuleExpressionInjection) checkExprsIn(s string, pos *actionlint.Pos,
 		s = s[offsetAfter:]
 		offset += offsetAfter
 	}
-
 }
 
 func (rule *RuleExpressionInjection) checkSemantics(src string, line, col int, checkUntrusted bool, workflowKey string) (int, bool) {
@@ -154,7 +153,6 @@ func (rule *RuleExpressionInjection) exprError(err *actionlint.ExprError, lineBa
 }
 
 func (rule *RuleExpressionInjection) checkExprNode(expr actionlint.ExprNode, line, col int, checkUntrusted bool, workflowKey string) bool {
-
 	errs := rule.checkExpressionInjection(expr)
 	for _, err := range errs {
 		rule.exprError(err, line, col)
@@ -172,7 +170,6 @@ func convertExprLineColToPos(line, col, lineBase, colBase int) *actionlint.Pos {
 }
 
 func (rule *RuleExpressionInjection) checkExpressionInjection(expr actionlint.ExprNode) []*actionlint.ExprError {
-
 	errs := []*actionlint.ExprError{}
 
 	untrusted := actionlint.NewUntrustedInputChecker(rule.customUntrustedInputSearchRoots)
@@ -219,5 +216,12 @@ func checkArrayDeref(n *actionlint.ArrayDerefNode, untrusted *actionlint.Untrust
 func checkFuncCall(n *actionlint.FuncCallNode, untrusted *actionlint.UntrustedInputChecker) {
 	for _, a := range n.Args {
 		inspectExprNode(a, untrusted)
+	}
+}
+
+func cleanLogMessages(errs []*actionlint.Error) {
+	for _, e := range errs {
+		msg := strings.Split(e.Message, ". ")
+		e.Message = "Expression injection, " + msg[0] + "."
 	}
 }

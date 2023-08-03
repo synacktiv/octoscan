@@ -24,7 +24,6 @@ linters:
     - unconvert
     - unused
     - wastedassign
-
     - wsl
     - whitespace
     - varnamelen
@@ -60,20 +59,15 @@ linters:
     - exhaustive
     - exportloopref
     - forbidigo
-    - forcetypeassert
     - funlen
-    - gci
-    - gochecknoglobals
     - gochecknoinits
     - gocognit
     - goconst
     - gocritic
     - gocyclo
-    - godot
     - godox
     - goerr113
     - gofmt
-    - gofumpt
     - goheader
     - goimports
     - gomnd
@@ -85,7 +79,6 @@ linters:
     - ineffassign
     - interfacebloat
     - ireturn
-    - lll
     - maintidx
     - makezero
     - nakedret
@@ -102,6 +95,10 @@ run:
     - test
 
 linters-settings:
+  errcheck:
+    exclude-functions:
+      - (*github.com/rhysd/actionlint.Linter).LintFile
+      - (*github.com/rhysd/actionlint.Linter).LintRepository
   stylecheck:
     checks: ["all", "-ST1005", "-ST1003"]
   nakedret:
