@@ -1,14 +1,136 @@
-# https://golangci-lint.run/usage/configuration/
 linters:
   enable:
+    - bidichk
+    - bodyclose
+    - depguard
+    - dupl
     - errcheck
+    - forbidigo
+    - gocritic
+    - gofmt
+    - goimports
+    - gosec
     - gosimple
     - govet
     - ineffassign
-    - staticcheck
-    - typecheck
-    - gofmt
-    - goimports
     - misspell
-  disable:
+    - nakedret
+    - nolintlint
+    - prealloc
+    - revive
+    - staticcheck
+    - stylecheck
+    - typecheck
+    - unconvert
     - unused
+    - wastedassign
+
+    - wsl
+    - whitespace
+    - varnamelen
+    - usestdlibvars
+    - unparam
+    - tenv
+    - tagliatelle
+    - reassign
+    - predeclared
+    - prealloc
+    - nosprintfhostport
+    - nonamedreturns
+    - nolintlint
+    - noctx
+    - nlreturn
+    - nilnil
+    - asasalint
+    - asciicheck
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - cyclop
+    - decorder
+    - dogsled
+    - dupl
+    - dupword
+    - durationcheck
+    - errcheck
+    - errchkjson
+    - errname
+    - errorlint
+    - execinquery
+    - exhaustive
+    - exportloopref
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - gci
+    - gochecknoglobals
+    - gochecknoinits
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - goerr113
+    - gofmt
+    - gofumpt
+    - goheader
+    - goimports
+    - gomnd
+    - goprintffuncname
+    - gosec
+    - govet
+    - grouper
+    - importas
+    - ineffassign
+    - interfacebloat
+    - ireturn
+    - lll
+    - maintidx
+    - makezero
+    - nakedret
+    - nestif
+
+  enable-all: false
+  disable-all: true
+  fast: false
+
+run:
+  go: "1.19"
+  timeout: 10m
+  skip-dirs:
+    - test
+
+linters-settings:
+  stylecheck:
+    checks: ["all", "-ST1005", "-ST1003"]
+  nakedret:
+    max-func-lines: 0
+  revive:
+    ignore-generated-header: false
+    severity: warning
+    confidence: 0.8
+    errorCode: 1
+    warningCode: 1
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: if-return
+      - name: increment-decrement
+      - name: var-naming
+      - name: var-declaration
+      - name: package-comments
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: indent-error-flow
+      - name: errorf
+      - name: duplicated-imports
+      - name: modifies-value-receiver
