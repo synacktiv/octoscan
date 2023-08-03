@@ -8,7 +8,7 @@ import (
 
 type RuleDangerousAction struct {
 	actionlint.RuleBase
-	jobsCache map[string][]string
+	// jobsCache map[string][]string
 }
 
 var dangerousActions = []string{
@@ -23,16 +23,10 @@ func NewRuleDangerousAction() *RuleDangerousAction {
 	return &RuleDangerousAction{
 		RuleBase: actionlint.NewRuleBase(
 			"dangerous-action",
-			"Check for dangerous actions depending on some context.",
+			"Check for dangerous actions.",
 		),
-		jobsCache: map[string][]string{},
+		// jobsCache: map[string][]string{},
 	}
-}
-
-// VisitJobPre is callback when visiting Job node before visiting its children.
-func (rule *RuleDangerousAction) VisitJobPre(n *actionlint.Job) error {
-	rule.fillJobsCache(n)
-	return nil
 }
 
 // VisitStep is callback when visiting Step node.
@@ -42,28 +36,9 @@ func (rule *RuleDangerousAction) VisitStep(n *actionlint.Step) error {
 		return nil
 	}
 
-	if e.Uses.ContainsExpression() {
-		// Cannot parse specification made with interpolation. Give up
-		return nil
-	}
-
 	spec := e.Uses.Value
 
-	if strings.HasPrefix(spec, "./") {
-		// Relative to repository root
-		// TODO
-		rule.Errorf(
-			e.Uses.Pos,
-			"Use of local action %q",
-			spec,
-		)
-		return nil
-	}
-
-	if !strings.HasPrefix(spec, "./") || !strings.HasPrefix(spec, "docker://") {
-		rule.checkRepoAction(spec, e)
-		return nil
-	}
+	rule.checkDangerousActions(spec, e)
 
 	return nil
 }
@@ -103,8 +78,7 @@ func (rule *RuleDangerousAction) VisitStep(n *actionlint.Step) error {
 //
 //}
 
-// Parse {owner}/{repo}@{ref} or {owner}/{repo}/{path}@{ref}
-func (rule *RuleDangerousAction) checkRepoAction(spec string, exec *actionlint.ExecAction) {
+func (rule *RuleDangerousAction) checkDangerousActions(spec string, exec *actionlint.ExecAction) {
 	for _, action := range dangerousActions {
 		if strings.HasPrefix(spec, action) {
 			rule.Errorf(
@@ -116,15 +90,15 @@ func (rule *RuleDangerousAction) checkRepoAction(spec string, exec *actionlint.E
 	}
 }
 
-func (rule *RuleDangerousAction) fillJobsCache(n *actionlint.Job) {
-	externalActionsCache := []string{}
-	for _, step := range n.Steps {
-		e, ok := step.Exec.(*actionlint.ExecAction)
-		if !ok || e.Uses == nil {
-			continue
-		}
-		externalActionsCache = append(externalActionsCache, e.Uses.Value)
-	}
-
-	rule.jobsCache[n.ID.Value] = externalActionsCache
-}
+// func (rule *RuleDangerousAction) fillJobsCache(n *actionlint.Job) {
+// 	externalActionsCache := []string{}
+// 	for _, step := range n.Steps {
+// 		e, ok := step.Exec.(*actionlint.ExecAction)
+// 		if !ok || e.Uses == nil {
+// 			continue
+// 		}
+// 		externalActionsCache = append(externalActionsCache, e.Uses.Value)
+// 	}
+//
+// 	rule.jobsCache[n.ID.Value] = externalActionsCache
+// }
