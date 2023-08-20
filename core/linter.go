@@ -41,6 +41,8 @@ func addCustomRules() []actionlint.Rule {
 		rules.NewRuleDangerousCheckout(),
 		rules.NewRuleExpressionInjection(),
 		rules.NewRuleDangerousWrite(),
+		rules.NewRuleLocalAction(),
+		rules.NewRuleOIDCAction(),
 	}
 }
 

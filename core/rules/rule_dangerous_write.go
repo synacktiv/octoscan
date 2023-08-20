@@ -50,10 +50,7 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubEnv(script string, p *actionli
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubOutputPwsh(script string, p *actionlint.Pos) {
-	basicRegExp, err := regexp.Compile(`(?m)(?i:env):GITHUB_OUTPUT`)
-	if err != nil {
-		return
-	}
+	basicRegExp := regexp.MustCompile(`(?m)(?i:env):GITHUB_OUTPUT`)
 
 	pos := searchInScript(script, basicRegExp)
 
@@ -71,10 +68,7 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubOutputPwsh(script string, p *a
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubOutputBash(script string, p *actionlint.Pos) {
-	basicRegExp, err := regexp.Compile(`(?m)>>\s*"*\${*GITHUB_OUTPUT`)
-	if err != nil {
-		return
-	}
+	basicRegExp := regexp.MustCompile(`(?m)>>\s*"*\${*GITHUB_OUTPUT`)
 
 	pos := searchInScript(script, basicRegExp)
 
@@ -92,10 +86,7 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubOutputBash(script string, p *a
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubEnvPwsh(script string, p *actionlint.Pos) {
-	basicRegExp, err := regexp.Compile(`(?m)(?i:env):GITHUB_ENV`)
-	if err != nil {
-		return
-	}
+	basicRegExp := regexp.MustCompile(`(?m)(?i:env):GITHUB_ENV`)
 
 	pos := searchInScript(script, basicRegExp)
 
@@ -113,10 +104,7 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubEnvPwsh(script string, p *acti
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubEnvBash(script string, p *actionlint.Pos) {
-	basicRegExp, err := regexp.Compile(`(?m)>>\s*"*\${*GITHUB_ENV`)
-	if err != nil {
-		return
-	}
+	basicRegExp := regexp.MustCompile(`(?m)>{1,2}\s*"*\${*GITHUB_ENV`)
 
 	pos := searchInScript(script, basicRegExp)
 
@@ -135,6 +123,11 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubEnvBash(script string, p *acti
 
 func searchInScript(script string, re *regexp.Regexp) *actionlint.Pos {
 	line := 0
+
+	if len(strings.Split(script, "\n")) != 1 {
+		line++
+	}
+
 	scanner := bufio.NewScanner(strings.NewReader(script))
 	for scanner.Scan() {
 
@@ -164,10 +157,6 @@ func (rule *RuleDangerousWrite) exprError(err *actionlint.ExprError, lineBase, c
 // with the previous example the script line start before the pos of the Run action
 func exprLineColToPos(line, col, lineBase, colBase int) *actionlint.Pos {
 	// Line and column in ExprError are 1-based
-
-	if line != 0 {
-		line++
-	}
 
 	return &actionlint.Pos{
 		Line: line + lineBase,

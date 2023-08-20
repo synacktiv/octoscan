@@ -16,7 +16,7 @@ var needsOutputData = actionlint.NewUntrustedInputMap("needs",
 	),
 )
 
-var stepsOutputData = actionlint.NewUntrustedInputMap("needs",
+var stepsOutputData = actionlint.NewUntrustedInputMap("steps",
 	actionlint.NewUntrustedInputMap("*",
 		actionlint.NewUntrustedInputMap("outputs",
 			actionlint.NewUntrustedInputMap("*"),
@@ -24,7 +24,7 @@ var stepsOutputData = actionlint.NewUntrustedInputMap("needs",
 	),
 )
 
-var customUntrustedInputSearchRoots = []*actionlint.UntrustedInputMap{
+var CustomUntrustedInputSearchRoots = []*actionlint.UntrustedInputMap{
 	envUntrustedInputSearchRoots,
 	needsOutputData,
 	stepsOutputData,
@@ -37,18 +37,14 @@ type RuleExpressionInjection struct {
 
 // NewRuleExpression creates new RuleExpression instance.
 func NewRuleExpressionInjection() *RuleExpressionInjection {
-	untrustedInputSearchRoots := actionlint.BuiltinUntrustedInputs
-
-	for _, e := range customUntrustedInputSearchRoots {
-		untrustedInputSearchRoots.AddRoot(e)
-	}
 
 	return &RuleExpressionInjection{
 		RuleBase: actionlint.NewRuleBase(
 			"expression-injection",
 			"Check expression injection.",
 		),
-		customUntrustedInputSearchRoots: untrustedInputSearchRoots,
+		// note that the map is overloaded in init.go
+		customUntrustedInputSearchRoots: actionlint.BuiltinUntrustedInputs,
 	}
 }
 
