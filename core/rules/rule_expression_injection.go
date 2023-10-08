@@ -75,8 +75,6 @@ func (rule *RuleExpressionInjection) VisitStep(n *actionlint.Step) error {
 		}
 	}
 
-	cleanLogMessages(rule.Errs())
-
 	return nil
 }
 
@@ -110,6 +108,11 @@ func (rule *RuleExpressionInjection) checkExprsIn(s string, pos *actionlint.Pos,
 	if quoted {
 		col++ // when the string is quoted like 'foo' or "foo", column should be incremented
 	}
+
+	if len(strings.Split(s, "\n")) != 1 {
+		line++
+	}
+
 	offset := 0
 	for {
 		idx := strings.Index(s, "${{")
@@ -139,6 +142,7 @@ func (rule *RuleExpressionInjection) checkSemantics(src string, line, col int, c
 	if err != nil {
 		return l.Offset(), false
 	}
+
 	ok := rule.checkExprNode(expr, line, col, checkUntrusted, workflowKey)
 	return l.Offset(), ok
 }
@@ -213,6 +217,13 @@ func checkFuncCall(n *actionlint.FuncCallNode, untrusted *actionlint.UntrustedIn
 	for _, a := range n.Args {
 		inspectExprNode(a, untrusted)
 	}
+}
+
+// VisitWorkflowPost is callback when visiting Workflow node after visiting its children
+func (rule *RuleExpressionInjection) VisitWorkflowPost(n *actionlint.Workflow) error {
+	cleanLogMessages(rule.Errs())
+
+	return nil
 }
 
 func cleanLogMessages(errs []*actionlint.Error) {

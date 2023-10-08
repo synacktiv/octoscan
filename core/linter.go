@@ -43,6 +43,7 @@ func addCustomRules() []actionlint.Rule {
 		rules.NewRuleDangerousWrite(),
 		rules.NewRuleLocalAction(),
 		rules.NewRuleOIDCAction(),
+		rules.NewRuleRepoJacking(),
 	}
 }
 

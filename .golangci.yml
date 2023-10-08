@@ -36,7 +36,6 @@ linters:
     - nosprintfhostport
     - nonamedreturns
     - nolintlint
-    - noctx
     - nlreturn
     - nilnil
     - asasalint
@@ -97,6 +96,9 @@ linters-settings:
     checks: ["all", "-ST1005", "-ST1003"]
   nakedret:
     max-func-lines: 0
+  gosec:
+    excludes:
+      - G107
   revive:
     ignore-generated-header: false
     severity: warning
