@@ -16,6 +16,7 @@ var dangerousActions = []string{
 	"aochmann/actions-download-artifact",
 	"bettermarks/action-artifact-download",
 	"blablacar/action-download-last-artifact",
+	"actions/download-artifact",
 }
 
 // NewRuleDangerousAction creates new RuleDangerousAction instance.
