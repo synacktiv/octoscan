@@ -7,7 +7,7 @@ import (
 	"octoscan/common"
 	"os"
 	"path/filepath"
-	"strings"
+	"time"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
@@ -51,38 +51,131 @@ func NewGitHub(opts GitHubOptions) *GitHub {
 func (gh *GitHub) Download() error {
 	common.Log.Info(fmt.Sprintf("Downloading files of org: %s", gh.org))
 
-	repos, _, err := gh.client.Repositories.List(gh.ctx, "", nil)
+	// get all repos with pagination
+	var allRepos []*github.Repository
 
+	var err error
+
+	user, _, err := gh.client.Users.Get(gh.ctx, gh.org)
 	if err != nil {
-		common.Log.Error(fmt.Sprintf("Fail to list repositories of org %s: %v", gh.org, err))
+		common.Log.Error(fmt.Sprintf("Fail to determine if %s is a user or an org: %v", gh.org, err))
 
 		return err
 	}
 
-	for _, repo := range repos {
-		if strings.EqualFold(repo.GetOwner().GetLogin(), gh.org) {
-			err = gh.DownloadRepo(repo.GetName())
-			if err != nil {
-				common.Log.Error(fmt.Sprintf("Error while downloading files of repo: %s", repo.GetName()))
-			}
+	if user.GetType() == "Organization" {
+		allRepos, err = gh.getOrgRepos()
+	} else {
+		allRepos, err = gh.getUserRepos()
+	}
+
+	if err != nil {
+		return err
+	}
+
+	for _, repo := range allRepos {
+		err = gh.DownloadRepo(repo.GetName())
+		if err != nil {
+			common.Log.Error(fmt.Sprintf("Error while downloading files of repo: %s", repo.GetName()))
 		}
 	}
 
 	return nil
 }
 
+func (gh *GitHub) getOrgRepos() ([]*github.Repository, error) {
+	opt := &github.RepositoryListByOrgOptions{}
+
+	var allRepos []*github.Repository
+
+	for {
+		repos, resp, err := gh.client.Repositories.ListByOrg(gh.ctx, gh.org, opt)
+
+		if err != nil {
+			common.Log.Error(fmt.Sprintf("Fail to list repositories of org %s: %v", gh.org, err))
+
+			return nil, err
+		}
+
+		allRepos = append(allRepos, repos...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		opt.Page = resp.NextPage
+	}
+
+	return allRepos, nil
+}
+
+func (gh *GitHub) getUserRepos() ([]*github.Repository, error) {
+	opt := &github.RepositoryListOptions{}
+
+	var allRepos []*github.Repository
+
+	for {
+		repos, resp, err := gh.client.Repositories.List(gh.ctx, gh.org, opt)
+
+		if err != nil {
+			common.Log.Error(fmt.Sprintf("Fail to list repositories of org %s: %v", gh.org, err))
+
+			return nil, err
+		}
+
+		allRepos = append(allRepos, repos...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		opt.Page = resp.NextPage
+	}
+
+	return allRepos, nil
+}
+
 func (gh *GitHub) DownloadRepo(repo string) error {
 	common.Log.Info(fmt.Sprintf("Downloading files of repo: %s", repo))
 
-	branches, _, err := gh.client.Repositories.ListBranches(gh.ctx, gh.org, repo, nil)
-	if err != nil {
-		common.Log.Error(fmt.Sprintf("Fail to list branches of repository %s: %v", repo, err))
+	var allBranches []*github.Branch
 
-		return err
+	opt := &github.ListOptions{}
+
+	for {
+		branches, resp, err := gh.client.Repositories.ListBranches(gh.ctx, gh.org, repo, opt)
+
+		if err != nil {
+			common.Log.Error(fmt.Sprintf("Fail to list branches of repository %s: %v", repo, err))
+
+			return err
+		}
+
+		allBranches = append(allBranches, branches...)
+
+		if resp.NextPage == 0 {
+			break
+		}
+
+		opt.Page = resp.NextPage
 	}
 
-	for _, branch := range branches {
-		err := gh.DownloadContentFromBranch(repo, branch.GetName(), gh.path)
+	for _, branch := range allBranches {
+		// check rate limit
+		rateLimit, _, err := gh.client.RateLimits(gh.ctx)
+		if err != nil {
+			common.Log.Error("Could not get rate limit.")
+
+			return err
+		}
+
+		if rateLimit.Core.Remaining < 100 {
+			common.Log.Info(fmt.Sprintf("Remaining %d requests before reaching GitHub max rate limit.", rateLimit.Core.Remaining))
+			common.Log.Info(fmt.Sprintf("Sleeping %v minutes to refresh rate limit.", time.Until(rateLimit.Core.Reset.Time).Minutes()))
+			time.After(time.Until(rateLimit.Core.Reset.Time))
+		}
+
+		err = gh.DownloadContentFromBranch(repo, branch.GetName(), gh.path)
 		if err != nil {
 			common.Log.Error(err)
 		}
@@ -105,7 +198,7 @@ func (gh *GitHub) DownloadContentFromBranch(repo string, branch string, path str
 	}
 
 	// create the dir for output
-	fp := filepath.Join(gh.outputDir, repo, branch)
+	fp := filepath.Join(gh.outputDir, gh.org, repo, branch)
 	_ = os.MkdirAll(fp, 0755)
 
 	// used for the scanner
@@ -171,7 +264,7 @@ func (gh *GitHub) saveFileContent(fileContent *github.RepositoryContent, repo st
 		common.Log.Error(fmt.Sprintf("fail to get file content %s from repo %s (%s): empty content", *fileContent.Name, repo, branch))
 	}
 
-	return saveFileToDisk(content, filepath.Join(gh.outputDir, repo, branch, fileContent.GetPath()))
+	return saveFileToDisk(content, filepath.Join(gh.outputDir, gh.org, repo, branch, fileContent.GetPath()))
 }
 
 func saveFileToDisk(content string, path string) error {
