@@ -163,6 +163,7 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 	for _, branch := range allBranches {
 		// check rate limit
 		rateLimit, _, err := gh.client.RateLimits(gh.ctx)
+
 		if err != nil {
 			common.Log.Error("Could not get rate limit.")
 
