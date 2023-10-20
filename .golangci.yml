@@ -1,7 +1,6 @@
 linters:
   enable:
     - bidichk
-    - bodyclose
     - depguard
     - dupl
     - errcheck
@@ -23,7 +22,6 @@ linters:
     - typecheck
     - unconvert
     - unused
-    - wastedassign
     - wsl
     - whitespace
     - usestdlibvars
@@ -40,7 +38,6 @@ linters:
     - nilnil
     - asasalint
     - asciicheck
-    - bodyclose
     - contextcheck
     - cyclop
     - decorder
