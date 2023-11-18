@@ -19,6 +19,7 @@ type GitHub struct {
 	path      string
 	org       string
 	outputDir string
+	count     int
 }
 
 type GitHubOptions struct {
@@ -45,6 +46,7 @@ func NewGitHub(opts GitHubOptions) *GitHub {
 		path:      opts.Path,
 		org:       opts.Org,
 		outputDir: opts.OutputDir,
+		count:     0,
 	}
 }
 
@@ -161,22 +163,8 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 	}
 
 	for _, branch := range allBranches {
-		// check rate limit
-		rateLimit, _, err := gh.client.RateLimits(gh.ctx)
 
-		if err != nil {
-			common.Log.Error("Could not get rate limit.")
-
-			return err
-		}
-
-		if rateLimit.Core.Remaining < 100 {
-			common.Log.Info(fmt.Sprintf("Remaining %d requests before reaching GitHub max rate limit.", rateLimit.Core.Remaining))
-			common.Log.Info(fmt.Sprintf("Sleeping %v minutes to refresh rate limit.", time.Until(rateLimit.Core.Reset.Time).Minutes()))
-			time.After(time.Until(rateLimit.Core.Reset.Time))
-		}
-
-		err = gh.DownloadContentFromBranch(repo, branch.GetName(), gh.path)
+		err := gh.DownloadContentFromBranch(repo, branch.GetName(), gh.path)
 		if err != nil {
 			common.Log.Error(err)
 		}
@@ -216,6 +204,15 @@ func (gh *GitHub) DownloadContentFromBranch(repo string, branch string, path str
 }
 
 func (gh *GitHub) downloadFile(repo string, branch string, path string) error {
+
+	// check rate limit before downloading
+	if gh.count%100 == 0 {
+		err := gh.checkRateLimit()
+		if err != nil {
+			return err
+		}
+	}
+
 	fileContent, _, _, err := gh.client.Repositories.GetContents(gh.ctx, gh.org, repo, path, &github.RepositoryContentGetOptions{Ref: branch})
 
 	if err != nil {
@@ -224,6 +221,8 @@ func (gh *GitHub) downloadFile(repo string, branch string, path string) error {
 
 		return err
 	}
+
+	gh.count++
 
 	return gh.saveFileContent(fileContent, repo, branch)
 }
@@ -276,6 +275,25 @@ func saveFileToDisk(content string, path string) error {
 
 	if err != nil {
 		return fmt.Errorf("error writing file (%s): %w", path, err)
+	}
+
+	return nil
+}
+
+func (gh *GitHub) checkRateLimit() error {
+	// check rate limit
+	rateLimit, _, err := gh.client.RateLimits(gh.ctx)
+
+	if err != nil {
+		common.Log.Error("Could not get rate limit.")
+
+		return err
+	}
+
+	if rateLimit.Core.Remaining < 150 {
+		common.Log.Info(fmt.Sprintf("Remaining %d requests before reaching GitHub max rate limit.", rateLimit.Core.Remaining))
+		common.Log.Info(fmt.Sprintf("Sleeping %v minutes to refresh rate limit.", time.Until(rateLimit.Core.Reset.Time).Minutes()))
+		time.Sleep(time.Until(rateLimit.Core.Reset.Time.Add(5 * time.Minute)))
 	}
 
 	return nil
