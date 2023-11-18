@@ -22,7 +22,7 @@ repos:
         stages: [commit-msg]
         args: [build, chore, ci, docs, style, refactor, perf, test]
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.51.2
+    rev: v1.55.2
     hooks:
       - id: golangci-lint
-        entry: env GOOS=windows golangci-lint run --new-from-rev HEAD
+        entry: golangci-lint run --new-from-rev HEAD

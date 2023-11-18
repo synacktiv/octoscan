@@ -93,7 +93,7 @@ func (rule *RuleRepoJacking) VisitStep(n *actionlint.Step) error {
 	// Parse {owner}/{repo}@{ref} or {owner}/{repo}/{path}@{ref}
 	idx := strings.IndexRune(spec, '/')
 
-	if idx != -1 && !strings.HasPrefix(spec, "./") {
+	if idx != -1 && !strings.HasPrefix(spec, "./") && !strings.HasPrefix(spec, "docker://") {
 		owner := spec[:idx]
 
 		rule.allActions[owner] = append(rule.allActions[owner], map[string]*actionlint.Pos{spec: e.Uses.Pos})
@@ -120,6 +120,8 @@ func (rule *RuleRepoJacking) VisitWorkflowPost(n *actionlint.Workflow) error {
 				requestURL,
 				err,
 			)
+
+			return err
 		}
 
 		var sleepTime = 1
@@ -145,7 +147,6 @@ func (rule *RuleRepoJacking) VisitWorkflowPost(n *actionlint.Workflow) error {
 
 		// raise an error for all associated actions call
 		if res.StatusCode != http.StatusOK {
-			common.Log.Info(value)
 
 			for _, actions := range value {
 				for action, pos := range actions {

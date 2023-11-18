@@ -78,10 +78,11 @@ linters:
   fast: false
 
 run:
-  go: "1.19"
   timeout: 10m
   skip-dirs:
     - test
+    - octoscan-output
+    - notes
 
 linters-settings:
   errcheck:
