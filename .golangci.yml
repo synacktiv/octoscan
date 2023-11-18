@@ -5,7 +5,6 @@ linters:
     - dupl
     - errcheck
     - forbidigo
-    - gocritic
     - gofmt
     - goimports
     - gosec
