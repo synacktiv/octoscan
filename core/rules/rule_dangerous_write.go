@@ -35,7 +35,8 @@ func (rule *RuleDangerousWrite) VisitStep(n *actionlint.Step) error {
 }
 
 func (rule *RuleDangerousWrite) checkWrite(script string, p *actionlint.Pos) {
-	rule.checkWriteToGitHubOutput(script, p)
+	// handle by rule_dangerous_expression.go with needsOutputData and stepsOutputData I think
+	// rule.checkWriteToGitHubOutput(script, p)
 	rule.checkWriteToGitHubEnv(script, p)
 }
 
@@ -145,7 +146,7 @@ func searchInScript(script string, re *regexp.Regexp) *actionlint.Pos {
 }
 
 func (rule *RuleDangerousWrite) exprError(err *actionlint.ExprError, lineBase, colBase int) {
-	pos := exprLineColToPos(err.Line, err.Column, lineBase, colBase)
+	pos := ExprLineColToPos(err.Line, err.Column, lineBase, colBase)
 	rule.Error(pos, err.Message)
 }
 
@@ -155,9 +156,8 @@ func (rule *RuleDangerousWrite) exprError(err *actionlint.ExprError, lineBase, c
 //	ENV=""
 //
 // with the previous example the script line start before the pos of the Run action
-func exprLineColToPos(line, col, lineBase, colBase int) *actionlint.Pos {
+func ExprLineColToPos(line, col, lineBase, colBase int) *actionlint.Pos {
 	// Line and column in ExprError are 1-based
-
 	return &actionlint.Pos{
 		Line: line + lineBase,
 		Col:  col + colBase,

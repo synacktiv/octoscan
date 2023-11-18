@@ -6,26 +6,26 @@ import (
 	"github.com/rhysd/actionlint"
 )
 
-var envUntrustedInputSearchRoots = actionlint.NewUntrustedInputMap("env")
+// var envUntrustedInputSearchRoots = actionlint.NewUntrustedInputMap("env")
 
 var needsOutputData = actionlint.NewUntrustedInputMap("needs",
-	actionlint.NewUntrustedInputMap("*",
+	actionlint.NewUntrustedInputMap("**",
 		actionlint.NewUntrustedInputMap("outputs",
-			actionlint.NewUntrustedInputMap("*"),
+			actionlint.NewUntrustedInputMap("**"),
 		),
 	),
 )
 
 var stepsOutputData = actionlint.NewUntrustedInputMap("steps",
-	actionlint.NewUntrustedInputMap("*",
+	actionlint.NewUntrustedInputMap("**",
 		actionlint.NewUntrustedInputMap("outputs",
-			actionlint.NewUntrustedInputMap("*"),
+			actionlint.NewUntrustedInputMap("**"),
 		),
 	),
 )
 
 var CustomUntrustedInputSearchRoots = []*actionlint.UntrustedInputMap{
-	envUntrustedInputSearchRoots,
+	// envUntrustedInputSearchRoots,
 	needsOutputData,
 	stepsOutputData,
 }
@@ -50,12 +50,13 @@ func NewRuleExpressionInjection() *RuleExpressionInjection {
 
 // VisitStep is callback when visiting Step node.
 func (rule *RuleExpressionInjection) VisitStep(n *actionlint.Step) error {
-	rule.checkString(n.Name, "jobs.<job_id>.steps.name")
+
+	// rule.checkString(n.Name, "jobs.<job_id>.steps.name")
 
 	switch e := n.Exec.(type) {
 	case *actionlint.ExecRun:
 		rule.checkString(e.Run, "jobs.<job_id>.steps.run")
-		rule.checkString(e.Shell, "")
+		// rule.checkString(e.Shell, "")
 		rule.checkString(e.WorkingDirectory, "jobs.<job_id>.steps.working-directory")
 	case *actionlint.ExecAction:
 		rule.checkString(e.Uses, "")
@@ -67,13 +68,13 @@ func (rule *RuleExpressionInjection) VisitStep(n *actionlint.Step) error {
 
 	}
 
-	rule.checkEnv(n.Env, "jobs.<job_id>.steps.env") // env: at step level can refer 'env' context (#158)
+	// rule.checkEnv(n.Env, "jobs.<job_id>.steps.env") // env: at step level can refer 'env' context (#158)
 
-	if n.ID != nil {
-		if n.ID.ContainsExpression() {
-			rule.checkString(n.ID, "")
-		}
-	}
+	// if n.ID != nil {
+	// 	if n.ID.ContainsExpression() {
+	// 		rule.checkString(n.ID, "")
+	// 	}
+	// }
 
 	return nil
 }

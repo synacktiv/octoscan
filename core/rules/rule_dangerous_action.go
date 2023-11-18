@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"regexp"
 	"strings"
 
 	"github.com/rhysd/actionlint"
@@ -16,7 +17,6 @@ var dangerousActions = []string{
 	"aochmann/actions-download-artifact",
 	"bettermarks/action-artifact-download",
 	"blablacar/action-download-last-artifact",
-	"actions/download-artifact",
 }
 
 // NewRuleDangerousAction creates new RuleDangerousAction instance.
@@ -37,9 +37,8 @@ func (rule *RuleDangerousAction) VisitStep(n *actionlint.Step) error {
 		return nil
 	}
 
-	spec := e.Uses.Value
-
-	rule.checkDangerousActions(spec, e)
+	rule.checkDangerousActions(e)
+	rule.checkDownloadInGitHubScript(e)
 
 	return nil
 }
@@ -79,7 +78,9 @@ func (rule *RuleDangerousAction) VisitStep(n *actionlint.Step) error {
 //
 //}
 
-func (rule *RuleDangerousAction) checkDangerousActions(spec string, exec *actionlint.ExecAction) {
+func (rule *RuleDangerousAction) checkDangerousActions(exec *actionlint.ExecAction) {
+	spec := exec.Uses.Value
+
 	for _, action := range dangerousActions {
 		if strings.HasPrefix(spec, action) {
 			rule.Errorf(
@@ -103,3 +104,32 @@ func (rule *RuleDangerousAction) checkDangerousActions(spec string, exec *action
 //
 // 	rule.jobsCache[n.ID.Value] = externalActionsCache
 // }
+
+func (rule *RuleDangerousAction) checkDownloadInGitHubScript(exec *actionlint.ExecAction) {
+	spec := exec.Uses.Value
+
+	if strings.HasPrefix(spec, "actions/github-script") {
+		basicRegExp := regexp.MustCompile(`(?m)downloadArtifact`)
+		script := exec.Inputs["script"]
+
+		if script != nil {
+			pos := searchInScript(script.Value.Value, basicRegExp)
+
+			if pos != nil {
+				err := &actionlint.ExprError{
+					Message: "Use of \"downloadArtifact\" in \"actions/github-script\" action.",
+					Offset:  0,
+					Line:    pos.Line,
+					Column:  pos.Col,
+				}
+				err.Column -= len("downloadArtifact")
+				rule.exprError(err, script.Value.Pos.Line, script.Value.Pos.Col)
+			}
+		}
+	}
+}
+
+func (rule *RuleDangerousAction) exprError(err *actionlint.ExprError, lineBase, colBase int) {
+	pos := ExprLineColToPos(err.Line, err.Column, lineBase, colBase)
+	rule.Error(pos, err.Message)
+}

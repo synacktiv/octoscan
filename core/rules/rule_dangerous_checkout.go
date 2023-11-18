@@ -44,7 +44,12 @@ func (rule *RuleDangerousCheckout) VisitStep(n *actionlint.Step) error {
 
 	// search for checkout action
 	if strings.HasPrefix(spec, "actions/checkout") {
-		rule.checkoutPos = e.Uses.Pos
+		// basicRegExp := regexp.MustCompile(`github.event.pull_request`)
+		ref := e.Inputs["ref"]
+
+		if ref != nil {
+			rule.checkoutPos = e.Uses.Pos
+		}
 	}
 
 	return nil
@@ -65,7 +70,7 @@ func (rule *RuleDangerousCheckout) VisitWorkflowPost(n *actionlint.Workflow) err
 				if hook == "workflow_run" || hook == "pull_request_target" {
 					rule.Errorf(
 						rule.checkoutPos,
-						"Use of checkout action with %q workflow trigger",
+						"Use of checkout action with %q workflow trigger and custom ref.",
 						hook,
 					)
 
