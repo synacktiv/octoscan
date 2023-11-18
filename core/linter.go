@@ -18,7 +18,15 @@ type OctoLinter struct {
 
 func OnRulesCreated(rules []actionlint.Rule) []actionlint.Rule {
 	res := filterUnWantedRules(rules)
-	res = append(res, addCustomRules()...)
+	res = append(res, offlineRules()...)
+	res = append(res, onlineRules()...)
+
+	return res
+}
+
+func OfflineOnRulesCreated(rules []actionlint.Rule) []actionlint.Rule {
+	res := filterUnWantedRules(rules)
+	res = append(res, offlineRules()...)
 	return res
 }
 
@@ -35,7 +43,7 @@ func filterUnWantedRules(rules []actionlint.Rule) []actionlint.Rule {
 	return res
 }
 
-func addCustomRules() []actionlint.Rule {
+func offlineRules() []actionlint.Rule {
 	return []actionlint.Rule{
 		rules.NewRuleDangerousAction(),
 		rules.NewRuleDangerousCheckout(),
@@ -43,6 +51,11 @@ func addCustomRules() []actionlint.Rule {
 		rules.NewRuleDangerousWrite(),
 		rules.NewRuleLocalAction(),
 		rules.NewRuleOIDCAction(),
+	}
+}
+
+func onlineRules() []actionlint.Rule {
+	return []actionlint.Rule{
 		rules.NewRuleRepoJacking(),
 	}
 }
