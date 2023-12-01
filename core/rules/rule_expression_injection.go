@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"octoscan/common"
 	"strings"
 
 	"github.com/rhysd/actionlint"
@@ -32,24 +33,47 @@ var CustomUntrustedInputSearchRoots = []*actionlint.UntrustedInputMap{
 
 type RuleExpressionInjection struct {
 	actionlint.RuleBase
-	customUntrustedInputSearchRoots actionlint.UntrustedInputSearchRoots
+	customUntrustedInputSearchRoots        actionlint.UntrustedInputSearchRoots
+	filterTriggersWithExternalInteractions bool
+	skip                                   bool
 }
 
 // NewRuleExpression creates new RuleExpression instance.
-func NewRuleExpressionInjection() *RuleExpressionInjection {
-
+func NewRuleExpressionInjection(filterTriggersWithExternalInteractions bool) *RuleExpressionInjection {
 	return &RuleExpressionInjection{
 		RuleBase: actionlint.NewRuleBase(
 			"expression-injection",
 			"Check expression injection.",
 		),
 		// note that the map is overloaded in init.go
-		customUntrustedInputSearchRoots: actionlint.BuiltinUntrustedInputs,
+		customUntrustedInputSearchRoots:        actionlint.BuiltinUntrustedInputs,
+		filterTriggersWithExternalInteractions: filterTriggersWithExternalInteractions,
+		skip:                                   false,
 	}
+}
+
+func (rule *RuleExpressionInjection) VisitWorkflowPre(n *actionlint.Workflow) error {
+	// check on event and set skip if needed
+	if rule.filterTriggersWithExternalInteractions {
+		for _, event := range n.On {
+			if common.IsStringInArray(common.TriggerWithExternalData, event.EventName()) {
+				// don't skip, skip is false by default
+				return nil
+			}
+		}
+
+		rule.skip = true
+	}
+
+	return nil
 }
 
 // VisitStep is callback when visiting Step node.
 func (rule *RuleExpressionInjection) VisitStep(n *actionlint.Step) error {
+
+	if rule.skip {
+		return nil
+	}
 
 	// rule.checkString(n.Name, "jobs.<job_id>.steps.name")
 
@@ -222,7 +246,10 @@ func checkFuncCall(n *actionlint.FuncCallNode, untrusted *actionlint.UntrustedIn
 
 // VisitWorkflowPost is callback when visiting Workflow node after visiting its children
 func (rule *RuleExpressionInjection) VisitWorkflowPost(n *actionlint.Workflow) error {
-	cleanLogMessages(rule.Errs())
+
+	if !rule.skip {
+		cleanLogMessages(rule.Errs())
+	}
 
 	return nil
 }

@@ -1,7 +1,6 @@
 linters:
   enable:
     - bidichk
-    - depguard
     - dupl
     - errcheck
     - forbidigo
@@ -72,9 +71,11 @@ linters:
     - makezero
     - nakedret
     - nestif
+  disable:
+    - depguard
 
   enable-all: false
-  disable-all: true
+  disable-all: false
   fast: false
 
 run:

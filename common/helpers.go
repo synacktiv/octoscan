@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+var TriggerWithExternalData = []string{
+	"issues", // might need to verify this one
+	"issue_comment",
+	"pull_request_target",
+	"workflow_run",
+}
+
 func IsDirectory(path string) bool {
 	fileInfo, err := os.Stat(path)
 	if err != nil {
@@ -13,6 +20,16 @@ func IsDirectory(path string) bool {
 	}
 
 	return fileInfo.IsDir()
+}
+
+func IsStringInArray(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+
+	return false
 }
 
 func IsInternetAvailable() error {
