@@ -76,6 +76,12 @@ func (gh *GitHub) Download() error {
 	}
 
 	for _, repo := range allRepos {
+		// check rate limit
+		err := gh.checkRateLimit()
+		if err != nil {
+			return err
+		}
+
 		err = gh.DownloadRepo(repo.GetName())
 		if err != nil {
 			common.Log.Error(fmt.Sprintf("Error while downloading files of repo: %s", repo.GetName()))
@@ -140,6 +146,12 @@ func (gh *GitHub) getUserRepos() ([]*github.Repository, error) {
 func (gh *GitHub) DownloadRepo(repo string) error {
 	common.Log.Info(fmt.Sprintf("Downloading files of repo: %s", repo))
 
+	// check rate limit
+	err := gh.checkRateLimit()
+	if err != nil {
+		return err
+	}
+
 	var allBranches []*github.Branch
 
 	opt := &github.ListOptions{}
@@ -163,8 +175,13 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 	}
 
 	for _, branch := range allBranches {
+		// check rate limit
+		err := gh.checkRateLimit()
+		if err != nil {
+			return err
+		}
 
-		err := gh.DownloadContentFromBranch(repo, branch.GetName(), gh.path)
+		err = gh.DownloadContentFromBranch(repo, branch.GetName(), gh.path)
 		if err != nil {
 			common.Log.Error(err)
 		}
