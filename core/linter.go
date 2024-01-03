@@ -19,17 +19,20 @@ type OctoLinter struct {
 // not optimal but I can't pass other parameters to OnRulesCreated
 var (
 	FilterExternalTriggers = false
+	FilterRun              = false
 	Internetavailable      = true
+	DebugRules             = false
 	rulesSwitch            = map[string]bool{
-		"dangerous-action":     true,
-		"dangerous-checkout":   true,
-		"expression-injection": true,
-		"dangerous-write":      true,
-		"local-action":         true,
-		"oidc-action":          true,
-		"repo-jacking":         true,
-		"shellcheck":           true,
-		"credentials":          true,
+		"dangerous-action":       true,
+		"dangerous-checkout":     true,
+		"expression-injection":   true,
+		"dangerous-write":        true,
+		"local-action":           true,
+		"oidc-action":            true,
+		"repo-jacking":           true,
+		"shellcheck":             true,
+		"credentials":            true,
+		"debug-external-trigger": true,
 	}
 )
 
@@ -72,7 +75,7 @@ func offlineRules() []actionlint.Rule {
 	var res = []actionlint.Rule{}
 
 	if rulesSwitch["dangerous-action"] {
-		res = append(res, rules.NewRuleDangerousAction())
+		res = append(res, rules.NewRuleDangerousAction(FilterExternalTriggers))
 	}
 
 	if rulesSwitch["dangerous-checkout"] {
@@ -80,11 +83,11 @@ func offlineRules() []actionlint.Rule {
 	}
 
 	if rulesSwitch["expression-injection"] {
-		res = append(res, rules.NewRuleExpressionInjection(FilterExternalTriggers))
+		res = append(res, rules.NewRuleExpressionInjection(FilterExternalTriggers, FilterRun))
 	}
 
 	if rulesSwitch["dangerous-write"] {
-		res = append(res, rules.NewRuleDangerousWrite())
+		res = append(res, rules.NewRuleDangerousWrite(FilterExternalTriggers))
 	}
 
 	if rulesSwitch["local-action"] {
@@ -93,6 +96,12 @@ func offlineRules() []actionlint.Rule {
 
 	if rulesSwitch["oidc-action"] {
 		res = append(res, rules.NewRuleOIDCAction())
+	}
+
+	if DebugRules {
+		if rulesSwitch["debug-external-trigger"] {
+			res = append(res, rules.NewRuleDebugExternalTrigger())
+		}
 	}
 
 	return res

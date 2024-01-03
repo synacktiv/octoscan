@@ -36,10 +36,11 @@ type RuleExpressionInjection struct {
 	customUntrustedInputSearchRoots        actionlint.UntrustedInputSearchRoots
 	filterTriggersWithExternalInteractions bool
 	skip                                   bool
+	filterRun                              bool
 }
 
 // NewRuleExpression creates new RuleExpression instance.
-func NewRuleExpressionInjection(filterTriggersWithExternalInteractions bool) *RuleExpressionInjection {
+func NewRuleExpressionInjection(filterTriggersWithExternalInteractions bool, filterRun bool) *RuleExpressionInjection {
 	return &RuleExpressionInjection{
 		RuleBase: actionlint.NewRuleBase(
 			"expression-injection",
@@ -49,6 +50,7 @@ func NewRuleExpressionInjection(filterTriggersWithExternalInteractions bool) *Ru
 		customUntrustedInputSearchRoots:        actionlint.BuiltinUntrustedInputs,
 		filterTriggersWithExternalInteractions: filterTriggersWithExternalInteractions,
 		skip:                                   false,
+		filterRun:                              filterRun,
 	}
 }
 
@@ -83,12 +85,17 @@ func (rule *RuleExpressionInjection) VisitStep(n *actionlint.Step) error {
 		// rule.checkString(e.Shell, "")
 		rule.checkString(e.WorkingDirectory, "jobs.<job_id>.steps.working-directory")
 	case *actionlint.ExecAction:
-		rule.checkString(e.Uses, "")
-		for _, i := range e.Inputs {
-			rule.checkString(i.Value, "jobs.<job_id>.steps.with")
+
+		if !rule.filterRun {
+			rule.checkString(e.Uses, "")
+
+			for _, i := range e.Inputs {
+				rule.checkString(i.Value, "jobs.<job_id>.steps.with")
+			}
+
+			rule.checkString(e.Entrypoint, "")
+			rule.checkString(e.Args, "")
 		}
-		rule.checkString(e.Entrypoint, "")
-		rule.checkString(e.Args, "")
 
 	}
 

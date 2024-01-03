@@ -2,6 +2,7 @@ package rules
 
 import (
 	"bufio"
+	"octoscan/common"
 	"regexp"
 	"strings"
 
@@ -10,20 +11,45 @@ import (
 
 type RuleDangerousWrite struct {
 	actionlint.RuleBase
+	filterTriggersWithExternalInteractions bool
+	skip                                   bool
 }
 
 // NewRuleDangerousCheckout creates new RuleDangerousCheckout instance.
-func NewRuleDangerousWrite() *RuleDangerousWrite {
+func NewRuleDangerousWrite(filterTriggersWithExternalInteractions bool) *RuleDangerousWrite {
 	return &RuleDangerousWrite{
 		RuleBase: actionlint.NewRuleBase(
 			"dangerous-write",
 			"Check for dangerous write operation on $GITHUB_OUTPUT or $GITHUB_ENV.",
 		),
+		filterTriggersWithExternalInteractions: filterTriggersWithExternalInteractions,
+		skip:                                   false,
 	}
+}
+
+func (rule *RuleDangerousWrite) VisitWorkflowPre(n *actionlint.Workflow) error {
+	// check on event and set skip if needed
+	if rule.filterTriggersWithExternalInteractions {
+		for _, event := range n.On {
+			if common.IsStringInArray(common.TriggerWithExternalData, event.EventName()) {
+				// don't skip, skip is false by default
+				return nil
+			}
+		}
+
+		rule.skip = true
+	}
+
+	return nil
 }
 
 // VisitStep is callback when visiting Step node.
 func (rule *RuleDangerousWrite) VisitStep(n *actionlint.Step) error {
+
+	if rule.skip {
+		return nil
+	}
+
 	e, ok := n.Exec.(*actionlint.ExecRun)
 	if !ok {
 		return nil
@@ -36,7 +62,7 @@ func (rule *RuleDangerousWrite) VisitStep(n *actionlint.Step) error {
 
 func (rule *RuleDangerousWrite) checkWrite(script string, p *actionlint.Pos) {
 	// handle by rule_dangerous_expression.go with needsOutputData and stepsOutputData I think
-	// rule.checkWriteToGitHubOutput(script, p)
+	rule.checkWriteToGitHubOutput(script, p)
 	rule.checkWriteToGitHubEnv(script, p)
 }
 

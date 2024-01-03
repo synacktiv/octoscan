@@ -14,7 +14,7 @@ var usageScan = `octoscan
 
 Usage:
 	octoscan scan [options] <target>
-	octoscan scan [options] <target> [--filter-external --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>)]
+	octoscan scan [options] <target> [--debug-rules --filter-external --filter-run --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>)]
 
 Options:
 	-h, --help
@@ -27,9 +27,11 @@ Options:
 Args:
 	<target>					Target File or directory to scan
 	--filter-external				Filter triggers that can have external user input
+	--filter-run					Search for expression injection only in run shell scripts.
 	--ignore <pattern>				Regular expression matching to error messages you want to ignore.
 	--disable-rules <rules>				Disable specific rules. Split on ","
 	--enable-rules <rules>				Enable specific rules, this with disable all other rules. Split on ","
+	--debug-rules					Enable debug rules.
 
 `
 
@@ -103,6 +105,14 @@ func Scan(inputArgs []string) error {
 
 	if v, _ := args.Bool("--enable-rules"); v {
 		core.FilterRules(true, strings.Split(args["<rules>"].(string), ","))
+	}
+
+	if v, _ := args.Bool("--debug-rules"); v {
+		core.DebugRules = true
+	}
+
+	if v, _ := args.Bool("--filter-run"); v {
+		core.FilterRun = true
 	}
 
 	return runScanner(args, &opts)

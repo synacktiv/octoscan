@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"octoscan/common"
 	"strings"
 
 	"github.com/rhysd/actionlint"
@@ -58,25 +59,17 @@ func (rule *RuleDangerousCheckout) VisitStep(n *actionlint.Step) error {
 // VisitWorkflowPost is callback when visiting Workflow node after visiting its children
 func (rule *RuleDangerousCheckout) VisitWorkflowPost(n *actionlint.Workflow) error {
 	if rule.checkoutPos != nil {
-		for _, e := range n.On {
-			if e, ok := e.(*actionlint.WebhookEvent); ok {
 
-				hook := e.Hook.Value
-				_, ok := actionlint.AllWebhookTypes[hook]
-				if !ok {
-					continue
-				}
+		for _, event := range n.On {
+			if common.IsStringInArray(common.TriggerWithExternalData, event.EventName()) {
+				rule.Errorf(
+					rule.checkoutPos,
+					"Use of checkout action with %q workflow trigger and custom ref.",
+					event.EventName(),
+				)
 
-				if hook == "workflow_run" || hook == "pull_request_target" {
-					rule.Errorf(
-						rule.checkoutPos,
-						"Use of checkout action with %q workflow trigger and custom ref.",
-						hook,
-					)
-
-					// only trigger once even if both trigger are defined
-					return nil
-				}
+				// only trigger once even if both trigger are defined
+				return nil
 			}
 		}
 	}
