@@ -1,10 +1,7 @@
 package rules
 
 import (
-	"bufio"
 	"octoscan/common"
-	"regexp"
-	"strings"
 
 	"github.com/rhysd/actionlint"
 )
@@ -77,9 +74,7 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubEnv(script string, p *actionli
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubOutputPwsh(script string, p *actionlint.Pos) {
-	basicRegExp := regexp.MustCompile(`(?m)(?i:env):GITHUB_OUTPUT`)
-
-	pos := searchInScript(script, basicRegExp)
+	pos := searchInScript(script, common.GitHubOutputPwshRegexp)
 
 	if pos != nil {
 		err := &actionlint.ExprError{
@@ -95,9 +90,7 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubOutputPwsh(script string, p *a
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubOutputBash(script string, p *actionlint.Pos) {
-	basicRegExp := regexp.MustCompile(`(?m)>>\s*"*\${*GITHUB_OUTPUT`)
-
-	pos := searchInScript(script, basicRegExp)
+	pos := searchInScript(script, common.GitHubOutputBashRegexp)
 
 	if pos != nil {
 		err := &actionlint.ExprError{
@@ -113,9 +106,7 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubOutputBash(script string, p *a
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubEnvPwsh(script string, p *actionlint.Pos) {
-	basicRegExp := regexp.MustCompile(`(?m)(?i:env):GITHUB_ENV`)
-
-	pos := searchInScript(script, basicRegExp)
+	pos := searchInScript(script, common.GitHubEnvPwshRegexp)
 
 	if pos != nil {
 		err := &actionlint.ExprError{
@@ -131,9 +122,7 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubEnvPwsh(script string, p *acti
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubEnvBash(script string, p *actionlint.Pos) {
-	basicRegExp := regexp.MustCompile(`(?m)>{1,2}\s*"*\${*GITHUB_ENV`)
-
-	pos := searchInScript(script, basicRegExp)
+	pos := searchInScript(script, common.GitHubEnvBashRexexp)
 
 	if pos != nil {
 		err := &actionlint.ExprError{
@@ -148,44 +137,7 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubEnvBash(script string, p *acti
 	}
 }
 
-func searchInScript(script string, re *regexp.Regexp) *actionlint.Pos {
-	line := 0
-
-	if len(strings.Split(script, "\n")) != 1 {
-		line++
-	}
-
-	scanner := bufio.NewScanner(strings.NewReader(script))
-	for scanner.Scan() {
-
-		col := re.FindStringIndex(scanner.Text())
-		if col != nil {
-			return &actionlint.Pos{
-				Line: line,
-				Col:  col[1],
-			}
-		}
-		line++
-	}
-
-	return nil
-}
-
 func (rule *RuleDangerousWrite) exprError(err *actionlint.ExprError, lineBase, colBase int) {
-	pos := ExprLineColToPos(err.Line, err.Column, lineBase, colBase)
+	pos := exprLineColToPos(err.Line, err.Column, lineBase, colBase)
 	rule.Error(pos, err.Message)
-}
-
-// TODO improve multilines scripts
-// run: |
-//
-//	ENV=""
-//
-// with the previous example the script line start before the pos of the Run action
-func ExprLineColToPos(line, col, lineBase, colBase int) *actionlint.Pos {
-	// Line and column in ExprError are 1-based
-	return &actionlint.Pos{
-		Line: line + lineBase,
-		Col:  col + colBase,
-	}
 }

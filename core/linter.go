@@ -79,7 +79,7 @@ func offlineRules() []actionlint.Rule {
 	}
 
 	if rulesSwitch["dangerous-checkout"] {
-		res = append(res, rules.NewRuleDangerousCheckout())
+		res = append(res, rules.NewRuleDangerousCheckout(FilterExternalTriggers))
 	}
 
 	if rulesSwitch["expression-injection"] {

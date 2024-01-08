@@ -155,6 +155,6 @@ func (rule *RuleDangerousAction) checkDownloadInGitHubScript(exec *actionlint.Ex
 }
 
 func (rule *RuleDangerousAction) exprError(err *actionlint.ExprError, lineBase, colBase int) {
-	pos := ExprLineColToPos(err.Line, err.Column, lineBase, colBase)
+	pos := exprLineColToPos(err.Line, err.Column, lineBase, colBase)
 	rule.Error(pos, err.Message)
 }
