@@ -14,7 +14,7 @@ var usageScan = `octoscan
 
 Usage:
 	octoscan scan [options] <target>
-	octoscan scan [options] <target> [--debug-rules --filter-external --filter-run --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>)]
+	octoscan scan [options] <target> [--debug-rules --filter-external --filter-run --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>) --config-file <config>]
 
 Options:
 	-h, --help
@@ -32,6 +32,7 @@ Args:
 	--disable-rules <rules>				Disable specific rules. Split on ","
 	--enable-rules <rules>				Enable specific rules, this with disable all other rules. Split on ","
 	--debug-rules					Enable debug rules.
+	--config-file <config>				Config file.
 
 `
 
@@ -67,8 +68,11 @@ func runScanner(args docopt.Opts, opts *actionlint.LinterOptions) error {
 	}
 
 	opts.LogWriter = os.Stderr
-
 	opts.OnRulesCreated = core.OnRulesCreated
+
+	if args["--config-file"] != false {
+		opts.ConfigFile = args["<config>"].(string)
+	}
 
 	checkInternet(args)
 

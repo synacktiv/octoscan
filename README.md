@@ -37,24 +37,30 @@ Options:
 ### analyze
 
 ```sh
-./octoscan scan -h  
 octoscan
 
 Usage:
 	octoscan scan [options] <target>
-	octoscan scan [options] <target> [--json --oneline -i <pattern>...]
+	octoscan scan [options] <target> [--debug-rules --filter-external --filter-run --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>) --config-file <config>]
 
 Options:
 	-h, --help
 	-v, --version
 	-d, --debug
 	--verbose
+	--json						Json
+	--oneline					Use one line per one error. Useful for reading error messages from programs
 
 Args:
 	<target>					Target File or directory to scan
-	--json						Json output
-	--oneline					Use one line per one error. Useful for reading error messages from programs
-	-i, --ignore <pattern>				Regular expression matching to error messages you want to ignore. The pattern value is repeatable
+	--filter-external				Filter triggers that can have external user input
+	--filter-run					Search for expression injection only in run shell scripts.
+	--ignore <pattern>				Regular expression matching to error messages you want to ignore.
+	--disable-rules <rules>				Disable specific rules. Split on ","
+	--enable-rules <rules>				Enable specific rules, this with disable all other rules. Split on ","
+	--debug-rules					Enable debug rules.
+	--config-file <config>				Config file.
+
 
 ```
 
@@ -111,3 +117,4 @@ The tool curently detect the following vulnerability:
 - usage of actions referencing a non existing user or org (repo-jacking)
 - usage of OIDC action to get access tokens, it's not a vulnerability but can be interesting to check (oidc-action)
 - usage of static credentials in action (credentials)
+- usage of self hosted runners (runner-label)
