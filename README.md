@@ -36,6 +36,14 @@ Options:
 
 ### analyze
 
+If you don't know what to run just run this:
+```sh
+./octoscan scan path/to/workflows/ --disable-rules shellcheck,local-action --filter-external
+```
+
+It will reduce false positives and give the most interesting results.
+
+
 ```sh
 octoscan
 
