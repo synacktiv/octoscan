@@ -32,6 +32,7 @@ var (
 		"repo-jacking":           true,
 		"shellcheck":             true,
 		"credentials":            true,
+		"runner-label":           true,
 		"debug-external-trigger": true,
 	}
 )
@@ -63,6 +64,10 @@ func filterUnWantedRules(rules []actionlint.Rule) []actionlint.Rule {
 		}
 
 		if r.Name() == "shellcheck" && rulesSwitch["shellcheck"] {
+			res = append(res, r)
+		}
+
+		if r.Name() == "runner-label" && rulesSwitch["runner-label"] {
 			res = append(res, r)
 		}
 	}
@@ -97,6 +102,10 @@ func offlineRules() []actionlint.Rule {
 	if rulesSwitch["oidc-action"] {
 		res = append(res, rules.NewRuleOIDCAction())
 	}
+
+	// if rulesSwitch["runner-label"] {
+	// 	res = append(res, rules.NewRuleRunnerLabel())
+	// }
 
 	if DebugRules {
 		if rulesSwitch["debug-external-trigger"] {

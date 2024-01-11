@@ -35,6 +35,27 @@ Args:
 
 `
 
+func checkInternet(args docopt.Opts) {
+	checkInternet := true
+
+	if args["--enable-rules"] != false && !strings.Contains(args["<rules>"].(string), "repo-jacking") {
+		checkInternet = false
+	}
+
+	if args["--disable-rules"] != false && strings.Contains(args["<rules>"].(string), "repo-jacking") {
+		checkInternet = false
+	}
+
+	if checkInternet {
+		err := common.IsInternetAvailable()
+		if err != nil {
+			common.Log.Info("Could not connect to Internet, skipping \"repo-jacking\" rule.")
+
+			core.Internetavailable = false
+		}
+	}
+}
+
 func runScanner(args docopt.Opts, opts *actionlint.LinterOptions) error {
 	opts.Shellcheck = "shellcheck"
 	// Add default ignore pattern
@@ -47,14 +68,9 @@ func runScanner(args docopt.Opts, opts *actionlint.LinterOptions) error {
 
 	opts.LogWriter = os.Stderr
 
-	err := common.IsInternetAvailable()
-	if err != nil {
-		common.Log.Info("Could not connect to Internet, skipping \"repo-jacking\" rule.")
-
-		core.Internetavailable = false
-	}
-
 	opts.OnRulesCreated = core.OnRulesCreated
+
+	checkInternet(args)
 
 	l, err := actionlint.NewLinter(os.Stdout, opts)
 	if err != nil {
