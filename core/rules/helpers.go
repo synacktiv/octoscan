@@ -48,3 +48,9 @@ func exprLineColToPos(line, col, lineBase, colBase int) *actionlint.Pos {
 		Col:  col + colBase,
 	}
 }
+
+func containsExpression(s string) bool {
+	i := strings.Index(s, "${{")
+
+	return i >= 0 && i < strings.Index(s, "}}")
+}

@@ -67,9 +67,9 @@ func filterUnWantedRules(rules []actionlint.Rule) []actionlint.Rule {
 			res = append(res, r)
 		}
 
-		if r.Name() == "runner-label" && rulesSwitch["runner-label"] {
-			res = append(res, r)
-		}
+		// if r.Name() == "runner-label" && rulesSwitch["runner-label"] {
+		// 	res = append(res, r)
+		// }
 	}
 
 	return res
@@ -103,9 +103,9 @@ func offlineRules() []actionlint.Rule {
 		res = append(res, rules.NewRuleOIDCAction())
 	}
 
-	// if rulesSwitch["runner-label"] {
-	// 	res = append(res, rules.NewRuleRunnerLabel())
-	// }
+	if rulesSwitch["runner-label"] {
+		res = append(res, rules.NewRuleRunnerLabel())
+	}
 
 	if DebugRules {
 		if rulesSwitch["debug-external-trigger"] {
