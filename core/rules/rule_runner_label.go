@@ -272,7 +272,7 @@ func (rule *RuleRunnerLabel) tryToGetLabelsInMatrix(label *actionlint.String, m 
 		if row, ok := m.Rows[prop]; ok {
 			for _, v := range row.Values {
 				if s, ok := v.(*actionlint.RawYAMLString); ok && !containsExpression(s.Value) {
-					labels = append(labels, &actionlint.String{s.Value, false, s.Pos()})
+					labels = append(labels, &actionlint.String{Value: s.Value, Quoted: false, Pos: s.Pos()})
 				}
 			}
 		}
@@ -283,7 +283,6 @@ func (rule *RuleRunnerLabel) tryToGetLabelsInMatrix(label *actionlint.String, m 
 			if combi.Assigns != nil {
 				if assign, ok := combi.Assigns[prop]; ok {
 					if s, ok := assign.Value.(*actionlint.RawYAMLString); ok && !containsExpression(s.Value) {
-						labelTmp := actionlint.String{s.Value, false, s.Pos()}
 						labels = append(labels, &actionlint.String{Value: s.Value, Quoted: false, Pos: s.Pos()})
 					}
 				}
