@@ -11,7 +11,7 @@ import (
 var usageDownload = `Octoscan.
 
 Usage:
-	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --path <path> --output-dir <dir>]
+	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --default-branch --path <path> --output-dir <dir>]
 
 Options:
 	-h, --help  						Show help
@@ -20,6 +20,7 @@ Options:
 	--org <org> 						Organizations to target
 	--repo <repo>						Repository to target
 	--token <pat>						GHP to authenticate to GitHub
+	--default-branch  					Only download workflows from the default branch
 	--path <path>						GitHub file path to download [default: .github/workflows]
 	--output-dir <dir>					Output dir where to download files [default: octoscan-output]
 
@@ -45,10 +46,11 @@ func runDownloader(args docopt.Opts) error {
 	}
 
 	ghOpts := core.GitHubOptions{
-		Path:      path,
-		Org:       org,
-		OutputDir: dir,
-		Token:     token,
+		Path:              path,
+		Org:               org,
+		OutputDir:         dir,
+		Token:             token,
+		DefaultBranchOnly: args["--default-branch"].(bool),
 	}
 
 	gh := core.NewGitHub(ghOpts)

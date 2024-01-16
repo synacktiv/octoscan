@@ -14,20 +14,22 @@ import (
 )
 
 type GitHub struct {
-	client    *github.Client
-	ctx       context.Context
-	path      string
-	org       string
-	outputDir string
-	count     int
+	client            *github.Client
+	ctx               context.Context
+	path              string
+	org               string
+	outputDir         string
+	count             int
+	defaultBranchOnly bool
 }
 
 type GitHubOptions struct {
-	Proxy     bool
-	Token     string
-	Path      string
-	Org       string
-	OutputDir string
+	Proxy             bool
+	Token             string
+	Path              string
+	Org               string
+	OutputDir         string
+	DefaultBranchOnly bool
 }
 
 func NewGitHub(opts GitHubOptions) *GitHub {
@@ -41,12 +43,13 @@ func NewGitHub(opts GitHubOptions) *GitHub {
 	}
 
 	return &GitHub{
-		client:    github.NewClient(tc),
-		ctx:       ctx,
-		path:      opts.Path,
-		org:       opts.Org,
-		outputDir: opts.OutputDir,
-		count:     0,
+		client:            github.NewClient(tc),
+		ctx:               ctx,
+		path:              opts.Path,
+		org:               opts.Org,
+		outputDir:         opts.OutputDir,
+		defaultBranchOnly: opts.DefaultBranchOnly,
+		count:             0,
 	}
 }
 
@@ -152,26 +155,40 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 		return err
 	}
 
-	var allBranches []*github.Branch
+	var allBranches []string
 
 	opt := &github.ListOptions{}
 
-	for {
-		branches, resp, err := gh.client.Repositories.ListBranches(gh.ctx, gh.org, repo, opt)
-
+	if gh.defaultBranchOnly {
+		repository, _, err := gh.client.Repositories.Get(gh.ctx, gh.org, repo)
 		if err != nil {
-			common.Log.Error(fmt.Sprintf("Fail to list branches of repository %s: %v", repo, err))
+			common.Log.Error(fmt.Sprintf("Fail to find repository %s: %v", repo, err))
 
 			return err
 		}
 
-		allBranches = append(allBranches, branches...)
+		allBranches = append(allBranches, *repository.DefaultBranch)
+	} else {
+		for {
+			branches, resp, err := gh.client.Repositories.ListBranches(gh.ctx, gh.org, repo, opt)
 
-		if resp.NextPage == 0 {
-			break
+			if err != nil {
+				common.Log.Error(fmt.Sprintf("Fail to list branches of repository %s: %v", repo, err))
+
+				return err
+			}
+
+			for _, branche := range branches {
+				allBranches = append(allBranches, branche.GetName())
+			}
+
+			if resp.NextPage == 0 {
+				break
+			}
+
+			opt.Page = resp.NextPage
 		}
 
-		opt.Page = resp.NextPage
 	}
 
 	for _, branch := range allBranches {
@@ -181,7 +198,7 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 			return err
 		}
 
-		err = gh.DownloadContentFromBranch(repo, branch.GetName(), gh.path)
+		err = gh.DownloadContentFromBranch(repo, branch, gh.path)
 		if err != nil {
 			common.Log.Error(err)
 		}
