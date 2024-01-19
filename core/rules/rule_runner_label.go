@@ -178,7 +178,7 @@ func (rule *RuleRunnerLabel) checkLabelAndConflict(l *actionlint.String, m *acti
 		if len(ss) == 0 {
 			rule.Errorf(
 				l.Pos,
-				"Non matrix expression in a label: %q. It might be a self-hosted runner.",
+				"Expression in a label: %q. It might be a self-hosted runner.",
 				l.Value,
 			)
 		} else {
