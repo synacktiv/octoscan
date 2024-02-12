@@ -33,6 +33,7 @@ var (
 		"shellcheck":             true,
 		"credentials":            true,
 		"runner-label":           true,
+		"unsecure-commands":      true,
 		"debug-external-trigger": true,
 	}
 )
@@ -105,6 +106,10 @@ func offlineRules() []actionlint.Rule {
 
 	if rulesSwitch["runner-label"] {
 		res = append(res, rules.NewRuleRunnerLabel())
+	}
+
+	if rulesSwitch["unsecure-commands"] {
+		res = append(res, rules.NewRuleUnsecureCommands(FilterExternalTriggers))
 	}
 
 	if DebugRules {
