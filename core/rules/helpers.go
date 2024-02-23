@@ -2,6 +2,7 @@ package rules
 
 import (
 	"bufio"
+	"octoscan/common"
 	"regexp"
 	"strings"
 
@@ -53,4 +54,19 @@ func containsExpression(s string) bool {
 	i := strings.Index(s, "${{")
 
 	return i >= 0 && i < strings.Index(s, "}}")
+}
+
+func skipAnalysis(n *actionlint.Workflow, triggers []string) bool {
+	if len(triggers) > 0 {
+		for _, event := range n.On {
+			if common.IsStringInArray(triggers, event.EventName()) {
+				// don't skip, skip is false by default
+				return false
+			}
+		}
+
+		return true
+	}
+
+	return false
 }

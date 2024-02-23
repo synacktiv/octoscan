@@ -19,6 +19,7 @@ type OctoLinter struct {
 // not optimal but I can't pass other parameters to OnRulesCreated
 var (
 	FilterExternalTriggers = false
+	FilterTriggers         = []string{}
 	FilterRun              = false
 	Internetavailable      = true
 	DebugRules             = false
@@ -81,7 +82,7 @@ func offlineRules() []actionlint.Rule {
 	var res = []actionlint.Rule{}
 
 	if rulesSwitch["dangerous-action"] {
-		res = append(res, rules.NewRuleDangerousAction(FilterExternalTriggers))
+		res = append(res, rules.NewRuleDangerousAction(FilterTriggers))
 	}
 
 	if rulesSwitch["dangerous-checkout"] {
