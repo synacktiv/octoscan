@@ -100,7 +100,9 @@ func Scan(inputArgs []string) error {
 
 	parser := &docopt.Parser{}
 	args, _ := parser.ParseArgs(usageScan, inputArgs, "")
-	common.Log.Info(args)
+
+	// debug
+	// common.Log.Info(args)
 
 	if d, _ := args.Bool("--debug"); d {
 		opts.Debug = true
