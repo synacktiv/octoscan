@@ -120,11 +120,11 @@ func Scan(inputArgs []string) error {
 		opts.Format = "{{json .}}"
 	}
 
-	if v, _ := args.Bool("--filter-triggers"); v {
-		if args["<triggers>"].(string) == "external" {
+	if args["--filter-triggers"] != nil {
+		if args["--filter-triggers"].(string) == "external" {
 			core.FilterTriggers = common.TriggerWithExternalData
 		} else {
-			core.FilterTriggers = strings.Split(args["<triggers>"].(string), ",")
+			core.FilterTriggers = strings.Split(args["--filter-triggers"].(string), ",")
 		}
 	}
 
