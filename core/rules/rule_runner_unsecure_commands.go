@@ -1,42 +1,30 @@
 package rules
 
 import (
-	"octoscan/common"
-
 	"github.com/rhysd/actionlint"
 )
 
 type RuleUnsecureCommands struct {
 	actionlint.RuleBase
-	filterTriggersWithExternalInteractions bool
-	skip                                   bool
+	filterTriggers []string
+	skip           bool
 }
 
 // NewRuleUnsecureCommands creates new RuleUnsecureCommands instance.
-func NewRuleUnsecureCommands(filterTriggersWithExternalInteractions bool) *RuleUnsecureCommands {
+func NewRuleUnsecureCommands(filterTriggers []string) *RuleUnsecureCommands {
 	return &RuleUnsecureCommands{
 		RuleBase: actionlint.NewRuleBase(
 			"unsecure-commands",
 			"Check 'ACTIONS_ALLOW_UNSECURE_COMMANDS' env variable.",
 		),
-		filterTriggersWithExternalInteractions: filterTriggersWithExternalInteractions,
-		skip:                                   false,
+		filterTriggers: filterTriggers,
+		skip:           false,
 	}
 }
 
 func (rule *RuleUnsecureCommands) VisitWorkflowPre(n *actionlint.Workflow) error {
 	// check on event and set skip if needed
-	if rule.filterTriggersWithExternalInteractions {
-		for _, event := range n.On {
-			if common.IsStringInArray(common.TriggerWithExternalData, event.EventName()) {
-				rule.checkEnv(n.Env)
-
-				return nil
-			}
-		}
-
-		rule.skip = true
-	}
+	rule.skip = skipAnalysis(n, rule.filterTriggers)
 
 	return nil
 }

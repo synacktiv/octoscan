@@ -18,12 +18,11 @@ type OctoLinter struct {
 
 // not optimal but I can't pass other parameters to OnRulesCreated
 var (
-	FilterExternalTriggers = false
-	FilterTriggers         = []string{}
-	FilterRun              = false
-	Internetavailable      = true
-	DebugRules             = false
-	rulesSwitch            = map[string]bool{
+	FilterTriggers    = []string{}
+	FilterRun         = false
+	Internetavailable = true
+	DebugRules        = false
+	rulesSwitch       = map[string]bool{
 		"dangerous-action":       true,
 		"dangerous-checkout":     true,
 		"expression-injection":   true,
@@ -86,19 +85,19 @@ func offlineRules() []actionlint.Rule {
 	}
 
 	if rulesSwitch["dangerous-checkout"] {
-		res = append(res, rules.NewRuleDangerousCheckout(FilterExternalTriggers))
+		res = append(res, rules.NewRuleDangerousCheckout(FilterTriggers))
 	}
 
 	if rulesSwitch["expression-injection"] {
-		res = append(res, rules.NewRuleExpressionInjection(FilterExternalTriggers, FilterRun))
+		res = append(res, rules.NewRuleExpressionInjection(FilterTriggers, FilterRun))
 	}
 
 	if rulesSwitch["dangerous-write"] {
-		res = append(res, rules.NewRuleDangerousWrite(FilterExternalTriggers))
+		res = append(res, rules.NewRuleDangerousWrite(FilterTriggers))
 	}
 
 	if rulesSwitch["local-action"] {
-		res = append(res, rules.NewRuleLocalAction())
+		res = append(res, rules.NewRuleLocalAction(FilterTriggers))
 	}
 
 	if rulesSwitch["oidc-action"] {
@@ -110,7 +109,7 @@ func offlineRules() []actionlint.Rule {
 	}
 
 	if rulesSwitch["unsecure-commands"] {
-		res = append(res, rules.NewRuleUnsecureCommands(FilterExternalTriggers))
+		res = append(res, rules.NewRuleUnsecureCommands(FilterTriggers))
 	}
 
 	if DebugRules {

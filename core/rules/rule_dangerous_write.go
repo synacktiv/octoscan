@@ -8,34 +8,25 @@ import (
 
 type RuleDangerousWrite struct {
 	actionlint.RuleBase
-	filterTriggersWithExternalInteractions bool
-	skip                                   bool
+	filterTriggers []string
+	skip           bool
 }
 
-// NewRuleDangerousCheckout creates new RuleDangerousCheckout instance.
-func NewRuleDangerousWrite(filterTriggersWithExternalInteractions bool) *RuleDangerousWrite {
+// NewRuleDangerousWrite creates new RuleDangerousWrite instance.
+func NewRuleDangerousWrite(filterTriggers []string) *RuleDangerousWrite {
 	return &RuleDangerousWrite{
 		RuleBase: actionlint.NewRuleBase(
 			"dangerous-write",
 			"Check for dangerous write operation on $GITHUB_OUTPUT or $GITHUB_ENV.",
 		),
-		filterTriggersWithExternalInteractions: filterTriggersWithExternalInteractions,
-		skip:                                   false,
+		filterTriggers: filterTriggers,
+		skip:           false,
 	}
 }
 
 func (rule *RuleDangerousWrite) VisitWorkflowPre(n *actionlint.Workflow) error {
 	// check on event and set skip if needed
-	if rule.filterTriggersWithExternalInteractions {
-		for _, event := range n.On {
-			if common.IsStringInArray(common.TriggerWithExternalData, event.EventName()) {
-				// don't skip, skip is false by default
-				return nil
-			}
-		}
-
-		rule.skip = true
-	}
+	rule.skip = skipAnalysis(n, rule.filterTriggers)
 
 	return nil
 }

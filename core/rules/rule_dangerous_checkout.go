@@ -9,34 +9,25 @@ import (
 
 type RuleDangerousCheckout struct {
 	actionlint.RuleBase
-	filterTriggersWithExternalInteractions bool
-	skip                                   bool
+	filterTriggers []string
+	skip           bool
 }
 
 // NewRuleDangerousCheckout creates new RuleDangerousCheckout instance.
-func NewRuleDangerousCheckout(filterTriggersWithExternalInteractions bool) *RuleDangerousCheckout {
+func NewRuleDangerousCheckout(filterTriggers []string) *RuleDangerousCheckout {
 	return &RuleDangerousCheckout{
 		RuleBase: actionlint.NewRuleBase(
 			"dangerous-checkout",
 			"Check for dangerous checkout.",
 		),
-		filterTriggersWithExternalInteractions: filterTriggersWithExternalInteractions,
-		skip:                                   false,
+		filterTriggers: filterTriggers,
+		skip:           false,
 	}
 }
 
 func (rule *RuleDangerousCheckout) VisitWorkflowPre(n *actionlint.Workflow) error {
 	// check on event and set skip if needed
-	if rule.filterTriggersWithExternalInteractions {
-		for _, event := range n.On {
-			if common.IsStringInArray(common.TriggerWithExternalData, event.EventName()) {
-				// don't skip, skip is false by default
-				return nil
-			}
-		}
-
-		rule.skip = true
-	}
+	rule.skip = skipAnalysis(n, rule.filterTriggers)
 
 	return nil
 }

@@ -70,7 +70,7 @@ type RuleRepoJacking struct {
 	allActions map[string][]map[string]*actionlint.Pos
 }
 
-// NewRuleDangerousAction creates new RuleDangerousAction instance.
+// NewRuleRepoJacking creates new RuleRepoJacking instance.
 func NewRuleRepoJacking() *RuleRepoJacking {
 	return &RuleRepoJacking{
 		RuleBase: actionlint.NewRuleBase(

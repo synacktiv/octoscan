@@ -30,7 +30,6 @@ I need to add new UntrustedInput and check for expression injection in some file
 package rules
 
 import (
-	"octoscan/common"
 	"strings"
 
 	"github.com/rhysd/actionlint"
@@ -62,39 +61,30 @@ var CustomUntrustedInputSearchRoots = []*actionlint.UntrustedInputMap{
 
 type RuleExpressionInjection struct {
 	actionlint.RuleBase
-	customUntrustedInputSearchRoots        actionlint.UntrustedInputSearchRoots
-	filterTriggersWithExternalInteractions bool
-	skip                                   bool
-	filterRun                              bool
+	customUntrustedInputSearchRoots actionlint.UntrustedInputSearchRoots
+	filterTriggers                  []string
+	skip                            bool
+	filterRun                       bool
 }
 
-// NewRuleExpression creates new RuleExpression instance.
-func NewRuleExpressionInjection(filterTriggersWithExternalInteractions bool, filterRun bool) *RuleExpressionInjection {
+// NewRuleExpressionInjection creates new RuleExpressionInjection instance.
+func NewRuleExpressionInjection(filterTriggers []string, filterRun bool) *RuleExpressionInjection {
 	return &RuleExpressionInjection{
 		RuleBase: actionlint.NewRuleBase(
 			"expression-injection",
 			"Check expression injection.",
 		),
 		// note that the map is overloaded in init.go
-		customUntrustedInputSearchRoots:        actionlint.BuiltinUntrustedInputs,
-		filterTriggersWithExternalInteractions: filterTriggersWithExternalInteractions,
-		skip:                                   false,
-		filterRun:                              filterRun,
+		customUntrustedInputSearchRoots: actionlint.BuiltinUntrustedInputs,
+		filterTriggers:                  filterTriggers,
+		skip:                            false,
+		filterRun:                       filterRun,
 	}
 }
 
 func (rule *RuleExpressionInjection) VisitWorkflowPre(n *actionlint.Workflow) error {
 	// check on event and set skip if needed
-	if rule.filterTriggersWithExternalInteractions {
-		for _, event := range n.On {
-			if common.IsStringInArray(common.TriggerWithExternalData, event.EventName()) {
-				// don't skip, skip is false by default
-				return nil
-			}
-		}
-
-		rule.skip = true
-	}
+	rule.skip = skipAnalysis(n, rule.filterTriggers)
 
 	return nil
 }

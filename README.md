@@ -38,7 +38,7 @@ Options:
 
 If you don't know what to run just run this:
 ```sh
-./octoscan scan path/to/workflows/ --disable-rules shellcheck,local-action --filter-external
+./octoscan scan path/to/repos/ --disable-rules shellcheck,local-action --filter-triggers external
 ```
 
 It will reduce false positives and give the most interesting results.
@@ -49,7 +49,7 @@ octoscan
 
 Usage:
 	octoscan scan [options] <target>
-	octoscan scan [options] <target> [--debug-rules --filter-external --filter-run --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>) --config-file <config>]
+	octoscan scan [options] <target> [--debug-rules --filter-triggers <triggers> --filter-run --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>) --config-file <config>]
 
 Options:
 	-h, --help
@@ -61,7 +61,7 @@ Options:
 
 Args:
 	<target>					Target File or directory to scan
-	--filter-external				Filter triggers that can have external user input
+	--filter-triggers <triggers>			Scan workflows with specific triggers (comma separated list: "push,pull_request_target,")
 	--filter-run					Search for expression injection only in run shell scripts.
 	--ignore <pattern>				Regular expression matching to error messages you want to ignore.
 	--disable-rules <rules>				Disable specific rules. Split on ","
@@ -69,7 +69,8 @@ Args:
 	--debug-rules					Enable debug rules.
 	--config-file <config>				Config file.
 
-
+Examples:
+	$ octoscan scan ci.yml --disable-rules shellcheck,local-action --filter-triggers external
 ```
 
 ```sh
@@ -126,3 +127,4 @@ The tool curently detect the following vulnerability:
 - usage of OIDC action to get access tokens, it's not a vulnerability but can be interesting to check (oidc-action)
 - usage of static credentials in action (credentials)
 - usage of self hosted runners (runner-label)
+- usage of `ACTIONS_ALLOW_UNSECURE_COMMANDS` (unsecure-commands)

@@ -14,7 +14,7 @@ var usageScan = `octoscan
 
 Usage:
 	octoscan scan [options] <target>
-	octoscan scan [options] <target> [--debug-rules ( --filter-external | --filter-triggers <triggers> ) --filter-run --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>) --config-file <config>]
+	octoscan scan [options] <target> [--debug-rules --filter-triggers=<triggers> --filter-run --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>) --config-file <config>]
 
 Options:
 	-h, --help
@@ -26,8 +26,7 @@ Options:
 
 Args:
 	<target>					Target File or directory to scan
-	--filter-external				Filter triggers that can have external user input
-	--filter-triggers <triggers>			Scan workflows with specific triggers (comma separated list: "push,pull_request_target,")
+	--filter-triggers <triggers>			Scan workflows with specific triggers (comma separated list: "push,pull_request_target")
 	--filter-run					Search for expression injection only in run shell scripts.
 	--ignore <pattern>				Regular expression matching to error messages you want to ignore.
 	--disable-rules <rules>				Disable specific rules. Split on ","
@@ -35,6 +34,8 @@ Args:
 	--debug-rules					Enable debug rules.
 	--config-file <config>				Config file.
 
+Examples:
+	$ octoscan scan ci.yml --disable-rules shellcheck,local-action --filter-triggers external
 `
 
 func checkInternet(args docopt.Opts) {
@@ -99,6 +100,7 @@ func Scan(inputArgs []string) error {
 
 	parser := &docopt.Parser{}
 	args, _ := parser.ParseArgs(usageScan, inputArgs, "")
+	common.Log.Info(args)
 
 	if d, _ := args.Bool("--debug"); d {
 		opts.Debug = true
@@ -116,13 +118,12 @@ func Scan(inputArgs []string) error {
 		opts.Format = "{{json .}}"
 	}
 
-	if v, _ := args.Bool("--filter-external"); v {
-		core.FilterExternalTriggers = true
-		core.FilterTriggers = common.TriggerWithExternalData
-	}
-
 	if v, _ := args.Bool("--filter-triggers"); v {
-		core.FilterTriggers = strings.Split(args["<triggers>"].(string), ",")
+		if args["<triggers>"].(string) == "external" {
+			core.FilterTriggers = common.TriggerWithExternalData
+		} else {
+			core.FilterTriggers = strings.Split(args["<triggers>"].(string), ",")
+		}
 	}
 
 	if v, _ := args.Bool("--disable-rules"); v {
