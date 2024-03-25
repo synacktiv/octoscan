@@ -8,22 +8,24 @@ import (
 
 type RuleDebugExternalTrigger struct {
 	actionlint.RuleBase
+	filterTriggers []string
 }
 
 // NewRuleOIDCAction creates new RuleOIDCAction instance.
-func NewRuleDebugExternalTrigger() *RuleDebugExternalTrigger {
+func NewRuleDebugExternalTrigger(filterTriggers []string) *RuleDebugExternalTrigger {
 	return &RuleDebugExternalTrigger{
 		RuleBase: actionlint.NewRuleBase(
 			"debug-external-trigger",
 			"Check for workflow that can be externally triggered.",
 		),
+		filterTriggers: filterTriggers,
 	}
 }
 
 func (rule *RuleDebugExternalTrigger) VisitWorkflowPre(n *actionlint.Workflow) error {
 	// check on event and set skip if needed
 	for _, event := range n.On {
-		if common.IsStringInArray(common.TriggerWithExternalData, event.EventName()) {
+		if common.IsStringInArray(rule.filterTriggers, event.EventName()) {
 			if n.Name != nil {
 				rule.Errorf(
 					n.Name.Pos,

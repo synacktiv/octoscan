@@ -35,6 +35,7 @@ var (
 		"runner-label":           true,
 		"unsecure-commands":      true,
 		"debug-external-trigger": true,
+		"debug-artefacts":        true,
 	}
 )
 
@@ -114,7 +115,11 @@ func offlineRules() []actionlint.Rule {
 
 	if DebugRules {
 		if rulesSwitch["debug-external-trigger"] {
-			res = append(res, rules.NewRuleDebugExternalTrigger())
+			res = append(res, rules.NewRuleDebugExternalTrigger(FilterTriggers))
+		}
+
+		if rulesSwitch["debug-artefacts"] {
+			res = append(res, rules.NewRuleRuleDebugArtefacts())
 		}
 	}
 

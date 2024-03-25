@@ -70,3 +70,21 @@ func skipAnalysis(n *actionlint.Workflow, triggers []string) bool {
 
 	return false
 }
+
+func checkForSpecificActions(rule *actionlint.RuleBase, exec *actionlint.ExecAction, actions []string) {
+	for _, action := range actions {
+		checkForSpecificAction(rule, exec, action)
+	}
+}
+
+func checkForSpecificAction(rule *actionlint.RuleBase, exec *actionlint.ExecAction, action string) {
+	spec := exec.Uses.Value
+
+	if strings.HasPrefix(spec, action) {
+		rule.Errorf(
+			exec.Uses.Pos,
+			"Use of action %q",
+			spec,
+		)
+	}
+}

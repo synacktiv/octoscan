@@ -52,7 +52,7 @@ func (rule *RuleDangerousAction) VisitStep(n *actionlint.Step) error {
 		return nil
 	}
 
-	rule.checkDangerousActions(e)
+	checkForSpecificActions(&rule.RuleBase, e, dangerousActions)
 	rule.checkDownloadInGitHubScript(e)
 
 	return nil
@@ -92,20 +92,6 @@ func (rule *RuleDangerousAction) VisitStep(n *actionlint.Step) error {
 //	}
 //
 //}
-
-func (rule *RuleDangerousAction) checkDangerousActions(exec *actionlint.ExecAction) {
-	spec := exec.Uses.Value
-
-	for _, action := range dangerousActions {
-		if strings.HasPrefix(spec, action) {
-			rule.Errorf(
-				exec.Uses.Pos,
-				"Use of dangerous action %q",
-				spec,
-			)
-		}
-	}
-}
 
 // func (rule *RuleDangerousAction) fillJobsCache(n *actionlint.Job) {
 // 	externalActionsCache := []string{}

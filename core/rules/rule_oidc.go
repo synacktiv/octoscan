@@ -1,8 +1,6 @@
 package rules
 
 import (
-	"strings"
-
 	"github.com/rhysd/actionlint"
 )
 
@@ -32,21 +30,7 @@ func (rule *RuleOIDCAction) VisitStep(n *actionlint.Step) error {
 		return nil
 	}
 
-	spec := e.Uses.Value
-
-	rule.checkOIDCActions(spec, e)
+	checkForSpecificActions(&rule.RuleBase, e, OIDCActions)
 
 	return nil
-}
-
-func (rule *RuleOIDCAction) checkOIDCActions(spec string, exec *actionlint.ExecAction) {
-	for _, action := range OIDCActions {
-		if strings.HasPrefix(spec, action) {
-			rule.Errorf(
-				exec.Uses.Pos,
-				"Use of OIDC action %q",
-				spec,
-			)
-		}
-	}
 }
