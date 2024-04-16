@@ -14,12 +14,17 @@ type RuleDangerousAction struct {
 	// jobsCache map[string][]string
 }
 
-var dangerousActions = []string{
+var downloadArtifactActionExternal = []string{
 	"dawidd6/action-download-artifact",
 	"aochmann/actions-download-artifact",
 	"bettermarks/action-artifact-download",
+}
+
+var downloadArtifactActionLocal = []string{
 	"blablacar/action-download-last-artifact",
 }
+
+var dangerousActions = downloadArtifactActionLocal // append(downloadArtifactActionLocal)
 
 // NewRuleDangerousAction creates new RuleDangerousAction instance.
 func NewRuleDangerousAction(filterTriggers []string) *RuleDangerousAction {
@@ -52,10 +57,37 @@ func (rule *RuleDangerousAction) VisitStep(n *actionlint.Step) error {
 		return nil
 	}
 
+	// trigger alert if action is present
 	checkForSpecificActions(&rule.RuleBase, e, dangerousActions)
+
+	// check download actions and verify if external artifacts are used
+	rule.checkDownloadActions(e)
+
 	rule.checkDownloadInGitHubScript(e)
 
 	return nil
+}
+
+func (rule *RuleDangerousAction) checkDownloadActions(exec *actionlint.ExecAction) {
+	spec := exec.Uses.Value
+
+	for _, action := range downloadArtifactActionExternal {
+		if strings.HasPrefix(spec, action) {
+			if exec.Inputs["repo"] != nil {
+				rule.Errorf(
+					exec.Inputs["repo"].Value.Pos,
+					"Use of action %q with external artifact",
+					spec,
+				)
+			} else {
+				rule.Errorf(
+					exec.Uses.Pos,
+					"Use of action %q",
+					spec,
+				)
+			}
+		}
+	}
 }
 
 // VisitWorkflowPost is callback when visiting Workflow node after visiting its children.

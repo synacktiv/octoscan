@@ -21,8 +21,8 @@ Options:
 	-v, --version
 	-d, --debug
 	--verbose
-	--json						Json
-	--oneline					Use one line per one error. Useful for reading error messages from programs
+	--json                    			JSON output
+	--oneline                    			Use one line per one error. Useful for reading error messages from programs
 
 Args:
 	<target>					Target File or directory to scan
@@ -123,6 +123,8 @@ func Scan(inputArgs []string) error {
 	if args["--filter-triggers"] != nil {
 		if args["--filter-triggers"].(string) == "external" {
 			core.FilterTriggers = common.TriggerWithExternalData
+		} else if args["--filter-triggers"].(string) == "allnopr" {
+			core.FilterTriggers = common.AllTriggers
 		} else {
 			core.FilterTriggers = strings.Split(args["--filter-triggers"].(string), ",")
 		}

@@ -65,13 +65,18 @@ func (rule *RuleDangerousCheckout) checkCheckoutAction(action *actionlint.ExecAc
 		if ref != nil && !common.LettersRegexp.MatchString(ref.Value.Value) {
 			rule.Errorf(
 				action.Uses.Pos,
-				"Use of 'actions/checkout' with external workflow trigger and custom ref.",
+				"Use of 'actions/checkout' with a custom ref.",
 			)
 		}
 	}
 }
 
 func (rule *RuleDangerousCheckout) checkManualCheckout(action *actionlint.ExecRun) {
+	rule.checkGitManualCheckout(action)
+	rule.checkGHCliManualCheckout(action)
+}
+
+func (rule *RuleDangerousCheckout) checkGitManualCheckout(action *actionlint.ExecRun) {
 	pos := searchInScript(action.Run.Value, common.GitCheckoutBashRexexp)
 
 	if pos != nil {
@@ -82,6 +87,21 @@ func (rule *RuleDangerousCheckout) checkManualCheckout(action *actionlint.ExecRu
 			Column:  pos.Col,
 		}
 		err.Column -= len("git checkout")
+		exprError(&rule.RuleBase, err, action.Run.Pos.Line, action.Run.Pos.Col)
+	}
+}
+
+func (rule *RuleDangerousCheckout) checkGHCliManualCheckout(action *actionlint.ExecRun) {
+	pos := searchInScript(action.Run.Value, common.GHCliCheckoutBashRexexp)
+
+	if pos != nil {
+		err := &actionlint.ExprError{
+			Message: "Use of \"gh pr checkout\" in a bash script with a potentially dangerous reference.",
+			Offset:  0,
+			Line:    pos.Line,
+			Column:  pos.Col,
+		}
+		err.Column -= len("gh pr checkout")
 		exprError(&rule.RuleBase, err, action.Run.Pos.Line, action.Run.Pos.Col)
 	}
 }

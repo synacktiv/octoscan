@@ -11,7 +11,7 @@ type RuleDebugExternalTrigger struct {
 	filterTriggers []string
 }
 
-// NewRuleOIDCAction creates new RuleOIDCAction instance.
+// NewRuleDebugExternalTrigger creates new RuleDebugExternalTrigger instance.
 func NewRuleDebugExternalTrigger(filterTriggers []string) *RuleDebugExternalTrigger {
 	return &RuleDebugExternalTrigger{
 		RuleBase: actionlint.NewRuleBase(

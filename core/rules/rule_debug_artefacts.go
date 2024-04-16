@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"strings"
+
 	"github.com/rhysd/actionlint"
 )
 
@@ -25,7 +27,14 @@ func (rule *RuleDebugArtefacts) VisitStep(n *actionlint.Step) error {
 		return nil
 	}
 
-	checkForSpecificAction(&rule.RuleBase, e, "actions/upload-artifact")
+	spec := e.Uses.Value
+
+	if strings.HasPrefix(spec, "actions/upload-artifact") {
+		rule.Errorf(
+			e.Inputs["path"].Value.Pos,
+			"Use of action 'actions/upload-artifact'",
+		)
+	}
 
 	return nil
 }
