@@ -31,7 +31,7 @@ func runDownloader(args docopt.Opts) error {
 
 	path, _ := args.String("--path")
 	org, _ := args.String("--org")
-	dir, _ := args.String("--dir")
+	dir, _ := args.String("--output-dir")
 	token, _ := args.String("--token")
 	repo, _ := args.String("--repo")
 
