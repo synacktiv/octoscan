@@ -36,6 +36,7 @@ var (
 		"unsecure-commands":      true,
 		"debug-external-trigger": true,
 		"debug-artefacts":        true,
+		"debug-js-exec":          true,
 	}
 )
 
@@ -120,6 +121,10 @@ func offlineRules() []actionlint.Rule {
 
 		if rulesSwitch["debug-artefacts"] {
 			res = append(res, rules.NewRuleRuleDebugArtefacts())
+		}
+
+		if rulesSwitch["debug-js-exec"] {
+			res = append(res, rules.NewRuleDebugJSExec(FilterTriggers))
 		}
 	}
 
