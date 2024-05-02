@@ -77,9 +77,9 @@ func (rule *RuleDangerousCheckout) checkManualCheckout(action *actionlint.ExecRu
 }
 
 func (rule *RuleDangerousCheckout) checkGitManualCheckout(action *actionlint.ExecRun) {
-	pos := searchInScript(action.Run.Value, common.GitCheckoutBashRexexp)
+	posArray := searchInScript(action.Run.Value, common.GitCheckoutBashRexexp)
 
-	if pos != nil {
+	for _, pos := range posArray {
 		err := &actionlint.ExprError{
 			Message: "Use of \"git checkout\" in a bash script with a potentially dangerous reference.",
 			Offset:  0,
@@ -92,9 +92,9 @@ func (rule *RuleDangerousCheckout) checkGitManualCheckout(action *actionlint.Exe
 }
 
 func (rule *RuleDangerousCheckout) checkGHCliManualCheckout(action *actionlint.ExecRun) {
-	pos := searchInScript(action.Run.Value, common.GHCliCheckoutBashRexexp)
+	posArray := searchInScript(action.Run.Value, common.GHCliCheckoutBashRexexp)
 
-	if pos != nil {
+	for _, pos := range posArray {
 		err := &actionlint.ExprError{
 			Message: "Use of \"gh pr checkout\" in a bash script with a potentially dangerous reference.",
 			Offset:  0,

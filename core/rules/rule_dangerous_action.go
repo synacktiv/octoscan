@@ -148,9 +148,9 @@ func (rule *RuleDangerousAction) checkDownloadInGitHubScript(exec *actionlint.Ex
 		script := exec.Inputs["script"]
 
 		if script != nil {
-			pos := searchInScript(script.Value.Value, basicRegExp)
+			posArray := searchInScript(script.Value.Value, basicRegExp)
 
-			if pos != nil {
+			for _, pos := range posArray {
 				err := &actionlint.ExprError{
 					Message: "Use of \"downloadArtifact\" in \"actions/github-script\" action.",
 					Offset:  0,
@@ -158,24 +158,19 @@ func (rule *RuleDangerousAction) checkDownloadInGitHubScript(exec *actionlint.Ex
 					Column:  pos.Col,
 				}
 				err.Column -= len("downloadArtifact")
-				rule.exprError(err, script.Value.Pos.Line, script.Value.Pos.Col)
+				exprError(&rule.RuleBase, err, script.Value.Pos.Line, script.Value.Pos.Col)
 			}
 		}
 	}
-}
-
-func (rule *RuleDangerousAction) exprError(err *actionlint.ExprError, lineBase, colBase int) {
-	pos := exprLineColToPos(err.Line, err.Column, lineBase, colBase)
-	rule.Error(pos, err.Message)
 }
 
 func (rule *RuleDangerousAction) checkDownloadArtifacts(exec *actionlint.ExecRun) {
 	script := exec.Run.Value
 	p := exec.Run.Pos
 
-	pos := searchInScript(script, common.GHCliDownloadArtifactsRexexp)
+	posArray := searchInScript(script, common.GHCliDownloadArtifactsRexexp)
 
-	if pos != nil {
+	for _, pos := range posArray {
 		err := &actionlint.ExprError{
 			Message: "Use of \"gh run download\" in a script.",
 			Offset:  0,
@@ -183,6 +178,6 @@ func (rule *RuleDangerousAction) checkDownloadArtifacts(exec *actionlint.ExecRun
 			Column:  pos.Col,
 		}
 		err.Column -= len("gh run download ")
-		rule.exprError(err, p.Line, p.Col)
+		exprError(&rule.RuleBase, err, p.Line, p.Col)
 	}
 }

@@ -9,8 +9,9 @@ import (
 	"github.com/rhysd/actionlint"
 )
 
-func searchInScript(script string, re *regexp.Regexp) *actionlint.Pos {
+func searchInScript(script string, re *regexp.Regexp) []*actionlint.Pos {
 	line := 0
+	res := []*actionlint.Pos{}
 
 	if len(strings.Split(script, "\n")) != 1 {
 		line++
@@ -20,15 +21,15 @@ func searchInScript(script string, re *regexp.Regexp) *actionlint.Pos {
 	for scanner.Scan() {
 		col := re.FindStringIndex(scanner.Text())
 		if col != nil {
-			return &actionlint.Pos{
+			res = append(res, &actionlint.Pos{
 				Line: line,
 				Col:  col[1],
-			}
+			})
 		}
 		line++
 	}
 
-	return nil
+	return res
 }
 
 func exprError(rule *actionlint.RuleBase, err *actionlint.ExprError, lineBase, colBase int) {

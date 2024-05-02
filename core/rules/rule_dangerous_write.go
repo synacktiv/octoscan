@@ -65,9 +65,9 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubEnv(script string, p *actionli
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubOutputPwsh(script string, p *actionlint.Pos) {
-	pos := searchInScript(script, common.GitHubOutputPwshRegexp)
+	posArray := searchInScript(script, common.GitHubOutputPwshRegexp)
 
-	if pos != nil {
+	for _, pos := range posArray {
 		err := &actionlint.ExprError{
 			Message: "Write to \"$GITHUB_OUTPUT\" in a powershell script. It might be a false positive, The regexp must be improved",
 			Offset:  0,
@@ -81,9 +81,9 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubOutputPwsh(script string, p *a
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubOutputBash(script string, p *actionlint.Pos) {
-	pos := searchInScript(script, common.GitHubOutputBashRegexp)
+	posArray := searchInScript(script, common.GitHubOutputBashRegexp)
 
-	if pos != nil {
+	for _, pos := range posArray {
 		err := &actionlint.ExprError{
 			Message: "Write to \"$GITHUB_OUTPUT\" in a bash script.",
 			Offset:  0,
@@ -97,9 +97,9 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubOutputBash(script string, p *a
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubEnvPwsh(script string, p *actionlint.Pos) {
-	pos := searchInScript(script, common.GitHubEnvPwshRegexp)
+	posArray := searchInScript(script, common.GitHubEnvPwshRegexp)
 
-	if pos != nil {
+	for _, pos := range posArray {
 		err := &actionlint.ExprError{
 			Message: "Write to \"$GITHUB_ENV\" in a powershell script. It might be a false positive, The regexp must be improved",
 			Offset:  0,
@@ -113,9 +113,9 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubEnvPwsh(script string, p *acti
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubEnvBash(script string, p *actionlint.Pos) {
-	pos := searchInScript(script, common.GitHubEnvBashRexexp)
+	posArray := searchInScript(script, common.GitHubEnvBashRexexp)
 
-	if pos != nil {
+	for _, pos := range posArray {
 		err := &actionlint.ExprError{
 			Message: "Write to \"$GITHUB_ENV\" in a bash script.",
 			Offset:  0,
