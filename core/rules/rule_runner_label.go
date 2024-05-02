@@ -40,15 +40,19 @@ type runnerOSCompat uint
 
 const (
 	compatInvalid                   = 0
-	compatUbuntu1804 runnerOSCompat = 1 << iota
-	compatUbuntu2004
+	compatUbuntu2004 runnerOSCompat = 1 << iota
 	compatUbuntu2204
 	compatMacOS1015
 	compatMacOS110
 	compatMacOS120
+	compatMacOS120L
 	compatMacOS120XL
 	compatMacOS130
+	compatMacOS130L
 	compatMacOS130XL
+	compatMacOS140
+	compatMacOS140L
+	compatMacOS140XL
 	compatWindows2016
 	compatWindows2019
 	compatWindows2022
@@ -85,28 +89,42 @@ const (
 // }
 
 var defaultRunnerOSCompats = map[string]runnerOSCompat{
-	"ubuntu-latest":   compatUbuntu2204,
-	"ubuntu-22.04":    compatUbuntu2204,
-	"ubuntu-20.04":    compatUbuntu2004,
-	"ubuntu-18.04":    compatUbuntu1804,
-	"macos-13-xl":     compatMacOS130XL,
-	"macos-13":        compatMacOS130,
-	"macos-13.0":      compatMacOS130,
-	"macos-latest-xl": compatMacOS120XL,
-	"macos-latest":    compatMacOS120,
-	"macos-12-xl":     compatMacOS120XL,
-	"macos-12":        compatMacOS120,
-	"macos-12.0":      compatMacOS120,
-	"macos-11":        compatMacOS110,
-	"macos-11.0":      compatMacOS110,
-	"macos-10.15":     compatMacOS1015,
-	"windows-latest":  compatWindows2022,
-	"windows-2022":    compatWindows2022,
-	"windows-2019":    compatWindows2019,
-	"windows-2016":    compatWindows2016,
-	"linux":           compatUbuntu2204 | compatUbuntu2004 | compatUbuntu1804, // Note: "linux" does not always indicate Ubuntu. It might be Fedora or Arch or ...
-	"macos":           compatMacOS130 | compatMacOS130XL | compatMacOS120 | compatMacOS120XL | compatMacOS110 | compatMacOS1015,
-	"windows":         compatWindows2022 | compatWindows2019 | compatWindows2016,
+	"ubuntu-latest":          compatUbuntu2204,
+	"ubuntu-latest-4-cores":  compatUbuntu2204,
+	"ubuntu-latest-8-cores":  compatUbuntu2204,
+	"ubuntu-latest-16-cores": compatUbuntu2204,
+	"ubuntu-22.04":           compatUbuntu2204,
+	"ubuntu-20.04":           compatUbuntu2004,
+	"macos-14-xl":            compatMacOS140XL,
+	"macos-14-xlarge":        compatMacOS140XL,
+	"macos-14-large":         compatMacOS140L,
+	"macos-14":               compatMacOS140,
+	"macos-14.0":             compatMacOS140,
+	"macos-13-xl":            compatMacOS130XL,
+	"macos-13-xlarge":        compatMacOS130XL,
+	"macos-13-large":         compatMacOS130L,
+	"macos-13":               compatMacOS130,
+	"macos-13.0":             compatMacOS130,
+	"macos-latest-xl":        compatMacOS120XL,
+	"macos-latest-xlarge":    compatMacOS120XL,
+	"macos-latest-large":     compatMacOS120L,
+	"macos-latest":           compatMacOS120,
+	"macos-12-xl":            compatMacOS120XL,
+	"macos-12-xlarge":        compatMacOS120XL,
+	"macos-12-large":         compatMacOS120L,
+	"macos-12":               compatMacOS120,
+	"macos-12.0":             compatMacOS120,
+	"macos-11":               compatMacOS110,
+	"macos-11.0":             compatMacOS110,
+	"macos-10.15":            compatMacOS1015,
+	"windows-latest":         compatWindows2022,
+	"windows-latest-8-cores": compatWindows2022,
+	"windows-2022":           compatWindows2022,
+	"windows-2019":           compatWindows2019,
+	"windows-2016":           compatWindows2016,
+	"linux":                  compatUbuntu2204 | compatUbuntu2004, // Note: "linux" does not always indicate Ubuntu. It might be Fedora or Arch or ...
+	"macos":                  compatMacOS130 | compatMacOS130L | compatMacOS130XL | compatMacOS120 | compatMacOS120L | compatMacOS120XL | compatMacOS110 | compatMacOS1015,
+	"windows":                compatWindows2022 | compatWindows2019 | compatWindows2016,
 }
 
 var knownLabels = []string{
