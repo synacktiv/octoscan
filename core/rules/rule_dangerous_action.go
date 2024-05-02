@@ -1,6 +1,7 @@
 package rules
 
 import (
+	"octoscan/common"
 	"regexp"
 	"strings"
 
@@ -52,18 +53,19 @@ func (rule *RuleDangerousAction) VisitStep(n *actionlint.Step) error {
 		return nil
 	}
 
-	e, ok := n.Exec.(*actionlint.ExecAction)
-	if !ok || e.Uses == nil {
-		return nil
+	switch e := n.Exec.(type) {
+	case *actionlint.ExecRun:
+		rule.checkDownloadArtifacts(e)
+
+	case *actionlint.ExecAction:
+		// trigger alert if action is present
+		checkForSpecificActions(&rule.RuleBase, e, dangerousActions)
+
+		// check download actions and verify if external artifacts are used
+		rule.checkDownloadActions(e)
+
+		rule.checkDownloadInGitHubScript(e)
 	}
-
-	// trigger alert if action is present
-	checkForSpecificActions(&rule.RuleBase, e, dangerousActions)
-
-	// check download actions and verify if external artifacts are used
-	rule.checkDownloadActions(e)
-
-	rule.checkDownloadInGitHubScript(e)
 
 	return nil
 }
@@ -165,4 +167,22 @@ func (rule *RuleDangerousAction) checkDownloadInGitHubScript(exec *actionlint.Ex
 func (rule *RuleDangerousAction) exprError(err *actionlint.ExprError, lineBase, colBase int) {
 	pos := exprLineColToPos(err.Line, err.Column, lineBase, colBase)
 	rule.Error(pos, err.Message)
+}
+
+func (rule *RuleDangerousAction) checkDownloadArtifacts(exec *actionlint.ExecRun) {
+	script := exec.Run.Value
+	p := exec.Run.Pos
+
+	pos := searchInScript(script, common.GHCliDownloadArtifactsRexexp)
+
+	if pos != nil {
+		err := &actionlint.ExprError{
+			Message: "Use of \"gh run download\" in a script.",
+			Offset:  0,
+			Line:    pos.Line,
+			Column:  pos.Col,
+		}
+		err.Column -= len("gh run download ")
+		rule.exprError(err, p.Line, p.Col)
+	}
 }
