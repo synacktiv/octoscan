@@ -64,7 +64,7 @@ func (rule *RuleDangerousCheckout) checkCheckoutAction(action *actionlint.ExecAc
 
 		if ref != nil && !common.LettersRegexp.MatchString(ref.Value.Value) {
 			rule.Errorf(
-				action.Uses.Pos,
+				ref.Value.Pos,
 				"Use of 'actions/checkout' with a custom ref.",
 			)
 		}
