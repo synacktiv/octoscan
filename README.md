@@ -31,7 +31,7 @@ Octoscan is a static vulnerability scanner for GitHub action workflows.
 Octoscan can be run against a local git repository or you can download all the workflows with the `dl` action:
 ```sh
 $ octoscan dl -h  
-Octoscan.  
+Octoscan.
 
 Usage:
 	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --default-branch --path <path> --output-dir <dir>]
@@ -39,7 +39,7 @@ Usage:
 Options:
 	-h, --help  						Show help
 	-d, --debug  						Debug output
-	--verbose  							Verbose output
+	--verbose  						Verbose output
 	--org <org> 						Organizations to target
 	--repo <repo>						Repository to target
 	--token <pat>						GHP to authenticate to GitHub
@@ -75,29 +75,26 @@ Options:
 	-v, --version
 	-d, --debug
 	--verbose
-	--json                    				JSON output
+	--json                    			JSON output
 	--oneline                    			Use one line per one error. Useful for reading error messages from programs
 
 Args:
-	<target>								Target File or directory to scan
+	<target>					Target File or directory to scan
 	--filter-triggers <triggers>			Scan workflows with specific triggers (comma separated list: "push,pull_request_target")
-	--filter-run							Search for expression injection only in run shell scripts.
-	--ignore <pattern>						Regular expression matching to error messages you want to ignore.
-	--disable-rules <rules>					Disable specific rules. Split on ","
-	--enable-rules <rules>					Enable specific rules, this with disable all other rules. Split on ","
-	--debug-rules							Enable debug rules.
-	--config-file <config>					Config file.
+	--filter-run					Search for expression injection only in run shell scripts.
+	--ignore <pattern>				Regular expression matching to error messages you want to ignore.
+	--disable-rules <rules>				Disable specific rules. Split on ","
+	--enable-rules <rules>				Enable specific rules, this with disable all other rules. Split on ","
+	--debug-rules					Enable debug rules.
+	--config-file <config>				Config file.
 
 Examples:
 	$ octoscan scan ci.yml --disable-rules shellcheck,local-action --filter-triggers external
-
 ```
 
 ## rules
 
 ### dangerous-checkout
-
-#### description
 
 Triggers like `workflow_run` or `pull_request_target` run in a privileged context, as they have read access to secrets and potentially have write access on the targeted repository. Performing an explicit checkout on the untrusted code will result in the attacker code being downloaded in such context.
 
@@ -113,8 +110,6 @@ Triggers like `workflow_run` or `pull_request_target` run in a privileged contex
 - [Angular](https://github.com/angular/angular/blob/6b20561e1d6810e867c0ee7692d9fae64426a876/.github/workflows/ci-privileged.yml#L4)
 
 ### dangerous-action
-
-#### description
 
 This rules warn the user if a dangerous action is used. It's mainly focused on untrusted artifacts.
 
@@ -132,8 +127,6 @@ It is common practice to use artifacts to pass data between different workflows.
 - [Rust](https://www.legitsecurity.com/blog/artifact-poisoning-vulnerability-discovered-in-rust)
 
 ### dangerous-write
-
-#### description
 
 GitHub will create default environment variables that can be used inside every step in a workflow. The `GITHUB_ENV` and `GITHUB_OUTPUT` variables are particularly interesting. It is possible to define environment variable in a step and to use this variable in another one. This can be done by writing it to the associated variable variable. If a user can control the content of the variable that is being set it can lead to arbitrary code execution.
 
@@ -203,7 +196,6 @@ Non-ephemeral runners can be identified by looking at run logs. A tool called [g
 
 ### repo-jacking
 
-#### description
 The repo jacking vulnerability was [presented](https://media.defcon.org/DEF%20CON%2031/DEF%20CON%2031%20presentations/Asi%20Greenholts%20-%20The%20GitHub%20Actions%20Worm%20Compromising%20GitHub%20repositories%20through%20the%20Actions%20dependency%20tree.pdf) at DEFCON 31 by Asi Greenholts. This vulnerability occurs when a GitHub action is referencing an action on a non-existing GitHub organization or user.
 
 ![AcalaNetwork](img/AcalaNetwork.png)
@@ -216,8 +208,6 @@ The repo jacking vulnerability was [presented](https://media.defcon.org/DEF%20CO
 
 ### unsecure-commands
 
-#### Description
-
 Actions possess the capability to interact with the runner machine, enabling them to set environment variables, define output values for use by other actions, incorporate debug messages into output logs, and perform various other tasks. However, before 2020, it was possible to control environment variables by writing data to `STDOUT` like this:
 
 ```yaml
@@ -227,20 +217,18 @@ run: |
    echo "echo "::set-env name=ENV_NAME::value"
 ```
 
-The implemented workflow commands were inherently insecure due to the common practice of logging to STDOUT. This vulnerability opened avenues for potential attacks, allowing malicious payloads to be easily injected and trigger the set-env command. The ability to modify environment variables introduced multiple paths for remote code execution, with a particularly obvious payload being the one demonstrated earlier. This vulnerability was initially [reported](https://bugs.chromium.org/p/project-zero/issues/detail?id=2070) by a security researcher from Project Zero.
+The implemented workflow commands were inherently insecure due to the common practice of logging to STDOUT. This vulnerability opened avenues for potential attacks, allowing malicious payloads to be easily injected and trigger the `set-env` command. The ability to modify environment variables introduced multiple paths for remote code execution, with a particularly obvious payload being the one demonstrated earlier. This vulnerability was initially [reported](https://bugs.chromium.org/p/project-zero/issues/detail?id=2070) by a security researcher from Project Zero.
 
-Although the set-env command is deprecated and unusable by default, if a developer sets the `ACTIONS_ALLOW_UNSECURE_COMMANDS` environment variable in a workflow, the `set-env` command becomes available and can be used:
+Although the `set-env` command is deprecated and unusable by default, if a developer sets the `ACTIONS_ALLOW_UNSECURE_COMMANDS` environment variable in a workflow, the `set-env` command becomes available and can be used:
 
 ![alibaba](img/alibaba.png)
 
 #### examples
 
-- alibaba/nacos
+- [alibaba/nacos](https://github.com/alibaba/nacos/commit/dd385294f56a6e27087aae927b4af2c4a231abd3) (Not found by us)
 
 
 ### credentials
-
-#### description
 
 Checks for credentials in `services:` configuration. This rules comes from [actionlint](https://github.com/rhysd/actionlint).
 
@@ -248,19 +236,13 @@ Checks for credentials in `services:` configuration. This rules comes from [acti
 
 ### shellcheck
 
-#### description
-
 Run shellcheck on all the bash tasks. This rules comes from [actionlint](https://github.com/rhysd/actionlint).
 
 ### local-action
 
-#### description
-
 Raise an alert if a local GitHub action is used. For now the tool can't parse local action files so an alert is raised as they can also contain vulnerabilities.
 
 ### oidc-action
-
-#### description
 
 Detect OIDC actions. Workflows using OIDC actions can be a good target to access some cloud providers. There is no vulnerability associated with this rule but taking a closer look at this action can be interesting if there is a vulnerability that is not found by this tool.
 
