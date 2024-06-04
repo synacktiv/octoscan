@@ -26,6 +26,12 @@ func (rule *RuleUnsecureCommands) VisitWorkflowPre(n *actionlint.Workflow) error
 	// check on event and set skip if needed
 	rule.skip = skipAnalysis(n, rule.filterTriggers)
 
+	if rule.skip {
+		return nil
+	}
+
+	rule.checkEnv(n.Env)
+
 	return nil
 }
 
