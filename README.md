@@ -1,22 +1,27 @@
 # Octoscan
 
-## description
+Octoscan is a static vulnerability scanner for GitHub action workflows.
 
-Octoscan is a static vulnerability scanner for GitHub workflows.
+## Table of Contents
+
+- [Octoscan](#octoscan)
+	- [Table of Contents](#table-of-contents)
+	- [usage](#usage)
+		- [download remote workflows](#download-remote-workflows)
+		- [analyze](#analyze)
+	- [rules](#rules)
+		- [dangerous-checkout](#dangerous-checkout)
 
 ## usage
-
-The tool is still in development, ping hugov if you need help.
-
 
 ### download remote workflows
 
 ```sh
-$ ./octoscan dl -h  
-Octoscan.
+$ octoscan dl -h  
+Octoscan.  
 
 Usage:
-	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --path <path> --output-dir <dir>]
+	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --default-branch --path <path> --output-dir <dir>]
 
 Options:
 	-h, --help  						Show help
@@ -25,9 +30,9 @@ Options:
 	--org <org> 						Organizations to target
 	--repo <repo>						Repository to target
 	--token <pat>						GHP to authenticate to GitHub
+	--default-branch  					Only download workflows from the default branch
 	--path <path>						GitHub file path to download [default: .github/workflows]
 	--output-dir <dir>					Output dir where to download files [default: octoscan-output]
-
 ```
 
 ```sh
@@ -45,23 +50,24 @@ It will reduce false positives and give the most interesting results.
 
 
 ```sh
+$ octoscan scan -h
 octoscan
 
 Usage:
 	octoscan scan [options] <target>
-	octoscan scan [options] <target> [--debug-rules --filter-triggers <triggers> --filter-run --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>) --config-file <config>]
+	octoscan scan [options] <target> [--debug-rules --filter-triggers=<triggers> --filter-run --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>) --config-file <config>]
 
 Options:
 	-h, --help
 	-v, --version
 	-d, --debug
 	--verbose
-	--json						Json
-	--oneline					Use one line per one error. Useful for reading error messages from programs
+	--json                    			JSON output
+	--oneline                    			Use one line per one error. Useful for reading error messages from programs
 
 Args:
 	<target>					Target File or directory to scan
-	--filter-triggers <triggers>			Scan workflows with specific triggers (comma separated list: "push,pull_request_target,")
+	--filter-triggers <triggers>			Scan workflows with specific triggers (comma separated list: "push,pull_request_target")
 	--filter-run					Search for expression injection only in run shell scripts.
 	--ignore <pattern>				Regular expression matching to error messages you want to ignore.
 	--disable-rules <rules>				Disable specific rules. Split on ","
@@ -73,50 +79,14 @@ Examples:
 	$ octoscan scan ci.yml --disable-rules shellcheck,local-action --filter-triggers external
 ```
 
-```sh
-./octoscan scan test/test.yml  
-test/test.yml:15:19: "password" section in "container" section should be specified via secrets. do not put password value directly [credentials]
-   |
-15 |         password: pass
-   |                   ^~~~
-test/test.yml:22:21: "password" section in "redis" service should be specified via secrets. do not put password value directly [credentials]
-   |
-22 |           password: pass
-   |                     ^~~~
-test/test.yml:26:32: Expression injection, "github.event.issue.body" is potentially untrusted. [expression-injection]
-test/test.yml:35:15: Use of dangerous action "dawidd6/action-download-artifact@v2" [dangerous-action]
-   |
-35 |         uses: dawidd6/action-download-artifact@v2
-   |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-test/test.yml:40:15: Use of local action "./.github/actions/custom-action/action.yml" [local-action]
-   |
-40 |       - uses: ./.github/actions/custom-action/action.yml
-   |               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-test/test.yml:50:18: Expression injection, "github.event.issue.title" is potentially untrusted. [expression-injection]
-   |
-50 |         uses: ${{github.event.issue.title}}
-   |                  ^~~~~~~~~~~~~~~~~~~~~~~~~~
-test/test.yml:58:24: Expression injection, "env.**" is potentially untrusted. [expression-injection]
-   |
-58 |         run: echo "${{ env.FOO }}"
-   |                        ^~~~~~~
-test/test.yml:64:23: Expression injection, "steps.**.outputs.**" is potentially untrusted. [expression-injection]
-   |
-64 |         run: echo ${{ steps.check_deps.outputs.dependencies }}
-   |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-test/test.yml:67:23: Expression injection, "needs.**.outputs.**" is potentially untrusted. [expression-injection]
-   |
-67 |         run: echo ${{ needs.prerequisites.outputs.dependencies }}
-   |                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-test/test.yml:83:55: Use of "downloadArtifact" in "actions/github-script" action. [dangerous-action]
-   |
-83 |             var download = await github.actions.downloadArtifact({
-   |                                                       ^~~~~~~~~~~~
-
-```
-
 
 ## rules
+
+### dangerous-checkout
+
+Triggers like `workflow_run` or `pull_request_target` run in a privileged context, as they have read access to secrets and potentially have write access on the targeted repository. Performing an explicit checkout on the untrusted code will result in the attacker code being downloaded in such context.
+
+![excalidraw](img/excalidraw.png)
 
 The tool curently detect the following vulnerability:
 - usage of public dangerous actions (dangerous-action)
