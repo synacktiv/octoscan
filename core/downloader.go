@@ -21,6 +21,7 @@ type GitHub struct {
 	outputDir         string
 	count             int
 	defaultBranchOnly bool
+	maxBranches       int
 }
 
 type GitHubOptions struct {
@@ -30,6 +31,7 @@ type GitHubOptions struct {
 	Org               string
 	OutputDir         string
 	DefaultBranchOnly bool
+	MaxBranches       int
 }
 
 func NewGitHub(opts GitHubOptions) *GitHub {
@@ -50,6 +52,7 @@ func NewGitHub(opts GitHubOptions) *GitHub {
 		outputDir:         opts.OutputDir,
 		defaultBranchOnly: opts.DefaultBranchOnly,
 		count:             0,
+		maxBranches:       opts.MaxBranches,
 	}
 }
 
@@ -159,16 +162,17 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 
 	opt := &github.ListOptions{}
 
-	if gh.defaultBranchOnly {
-		repository, _, err := gh.client.Repositories.Get(gh.ctx, gh.org, repo)
-		if err != nil {
-			common.Log.Error(fmt.Sprintf("Fail to find repository %s: %v", repo, err))
+	// Get the default branch by default
+	repository, _, err := gh.client.Repositories.Get(gh.ctx, gh.org, repo)
+	if err != nil {
+		common.Log.Error(fmt.Sprintf("Fail to find repository %s: %v", repo, err))
 
-			return err
-		}
+		return err
+	}
 
-		allBranches = append(allBranches, *repository.DefaultBranch)
-	} else {
+	allBranches = append(allBranches, *repository.DefaultBranch)
+
+	if !gh.defaultBranchOnly {
 		for {
 			branches, resp, err := gh.client.Repositories.ListBranches(gh.ctx, gh.org, repo, opt)
 
@@ -183,6 +187,13 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 			}
 
 			if resp.NextPage == 0 {
+				break
+			}
+
+			// truncate array for repos with too much branches
+			if gh.maxBranches != 0 && len(allBranches) >= gh.maxBranches {
+				allBranches = allBranches[:gh.maxBranches]
+
 				break
 			}
 

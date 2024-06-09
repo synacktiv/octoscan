@@ -21,6 +21,7 @@ Options:
 	--repo <repo>						Repository to target
 	--token <pat>						GHP to authenticate to GitHub
 	--default-branch  					Only download workflows from the default branch
+	--max-branches <num>  					Limit the number of branches to download
 	--path <path>						GitHub file path to download [default: .github/workflows]
 	--output-dir <dir>					Output dir where to download files [default: octoscan-output]
 
@@ -34,6 +35,7 @@ func runDownloader(args docopt.Opts) error {
 	dir, _ := args.String("--output-dir")
 	token, _ := args.String("--token")
 	repo, _ := args.String("--repo")
+	maxBranches, _ := args.Int("--max-branches")
 
 	path = strings.Trim(path, "/")
 	// docopt is not working with the default arg I don't know why !
@@ -51,6 +53,7 @@ func runDownloader(args docopt.Opts) error {
 		OutputDir:         dir,
 		Token:             token,
 		DefaultBranchOnly: args["--default-branch"].(bool),
+		MaxBranches:       maxBranches,
 	}
 
 	gh := core.NewGitHub(ghOpts)
