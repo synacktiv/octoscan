@@ -6,10 +6,11 @@ Octoscan is a static vulnerability scanner for GitHub action workflows.
 
 - [Octoscan](#octoscan)
 	- [Table of Contents](#table-of-contents)
-	- [usage](#usage)
+	- [Installation](#installation)
+	- [Usage](#usage)
 		- [download remote workflows](#download-remote-workflows)
 		- [analyze](#analyze)
-	- [rules](#rules)
+	- [Rules](#rules)
 		- [dangerous-checkout](#dangerous-checkout)
 		- [dangerous-action](#dangerous-action)
 		- [dangerous-write](#dangerous-write)
@@ -24,7 +25,13 @@ Octoscan is a static vulnerability scanner for GitHub action workflows.
 	- [Credits](#credits)
 	- [Resources](#resources)
 
-## usage
+## Installation
+
+```
+$ go mod tidy
+$ go build
+```
+## Usage
 
 ### download remote workflows
 
@@ -61,6 +68,12 @@ If you don't know what to run just run this:
 
 It will reduce false positives and give the most interesting results.
 
+If you have downloaded the worflows with the [dl](#download-remote-workflows) command you might have duplicated workflows since by default octoscan will download all the workflows of all the branches. To delete duplicated workflows and speed up the analysis you can use the `fdupes` before running the analysis:
+
+```sh
+fdupes -n -r -N -d path/to/repo
+```
+
 
 ```sh
 $ octoscan scan -h
@@ -92,7 +105,7 @@ Examples:
 	$ octoscan scan ci.yml --disable-rules shellcheck,local-action --filter-triggers external
 ```
 
-## rules
+## Rules
 
 ### dangerous-checkout
 
@@ -199,6 +212,8 @@ Non-ephemeral runners can be identified by looking at run logs. A tool called [g
 The repo jacking vulnerability was [presented](https://media.defcon.org/DEF%20CON%2031/DEF%20CON%2031%20presentations/Asi%20Greenholts%20-%20The%20GitHub%20Actions%20Worm%20Compromising%20GitHub%20repositories%20through%20the%20Actions%20dependency%20tree.pdf) at DEFCON 31 by Asi Greenholts. This vulnerability occurs when a GitHub action is referencing an action on a non-existing GitHub organization or user.
 
 ![AcalaNetwork](img/AcalaNetwork.png)
+
+Note that this rule needs internet to check wether the attack is possible or not. All other checks are performed offline.
 
 #### examples
 
