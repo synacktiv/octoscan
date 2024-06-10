@@ -18,6 +18,7 @@ Octoscan is a static vulnerability scanner for GitHub action workflows.
 		- [runner-label](#runner-label)
 		- [repo-jacking](#repo-jacking)
 		- [unsecure-commands](#unsecure-commands)
+		- [known-vulnerability](#known-vulnerability)
 		- [credentials](#credentials)
 		- [shellcheck](#shellcheck)
 		- [local-action](#local-action)
@@ -108,6 +109,38 @@ Examples:
 ```
 
 ## Rules
+
+The complete list of rules can be found with this command:
+```
+$ octoscan scan --list-rules  
+2024/06/11 00:00:09 [INFO] Available rules
+- dangerous-action
+	Check for dangerous actions.
+- dangerous-checkout
+	Check for dangerous checkout.
+- expression-injection
+	Check for expression injection.
+- dangerous-write
+	Check for dangerous write operation on $GITHUB_OUTPUT or $GITHUB_ENV.
+- local-action
+	Check for local actions.
+- oidc-action
+	Check for OIDC actions.
+- runner-label
+	Checks for GitHub-hosted and preset self-hosted runner labels in "runs-on:"
+- unsecure-commands
+	Check 'ACTIONS_ALLOW_UNSECURE_COMMANDS' env variable.
+- known-vulnerability
+	Check for known vulnerabilities.
+- debug-external-trigger
+	Check for workflow that can be externally triggered.
+- debug-artefacts
+	Check for workflow that upload artefacts.
+- debug-js-exec
+	Check for workflow that execute system commands in JS scripts.
+- repo-jacking
+	Verify that external actions are pointing to a valid GitHub user or organization.
+```
 
 ### dangerous-checkout
 
@@ -244,6 +277,9 @@ Although the `set-env` command is deprecated and unusable by default, if a devel
 
 - [alibaba/nacos](https://github.com/alibaba/nacos/commit/dd385294f56a6e27087aae927b4af2c4a231abd3) (Not found by us)
 
+### known-vulnerability
+
+Search for known vulnerable actions based on [osv.dev](https://osv.dev/list?ecosystem=GitHub+Actions&q=).
 
 ### credentials
 
