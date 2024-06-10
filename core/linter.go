@@ -22,7 +22,7 @@ var (
 	FilterRun         = false
 	Internetavailable = true
 	DebugRules        = false
-	rulesSwitch       = map[string]bool{
+	RulesSwitch       = map[string]bool{
 		"dangerous-action":       true,
 		"dangerous-checkout":     true,
 		"expression-injection":   true,
@@ -42,8 +42,8 @@ var (
 )
 
 func FilterRules(include bool, rulesFiltered []string) {
-	for name := range rulesSwitch {
-		rulesSwitch[name] = (include == common.IsStringInArray(rulesFiltered, name))
+	for name := range RulesSwitch {
+		RulesSwitch[name] = (include == common.IsStringInArray(rulesFiltered, name))
 	}
 }
 
@@ -63,11 +63,11 @@ func filterUnWantedRules(rules []actionlint.Rule) []actionlint.Rule {
 
 	for _, r := range rules {
 		// only keep credential and shellcheck rule
-		if r.Name() == "credentials" && rulesSwitch["credentials"] {
+		if r.Name() == "credentials" && RulesSwitch["credentials"] {
 			res = append(res, r)
 		}
 
-		if r.Name() == "shellcheck" && rulesSwitch["shellcheck"] {
+		if r.Name() == "shellcheck" && RulesSwitch["shellcheck"] {
 			res = append(res, r)
 		}
 
@@ -83,52 +83,52 @@ func offlineRules() []actionlint.Rule {
 
 	var res = []actionlint.Rule{}
 
-	if rulesSwitch["dangerous-action"] {
+	if RulesSwitch["dangerous-action"] {
 		res = append(res, rules.NewRuleDangerousAction(FilterTriggers))
 	}
 
-	if rulesSwitch["dangerous-checkout"] {
+	if RulesSwitch["dangerous-checkout"] {
 		res = append(res, rules.NewRuleDangerousCheckout(FilterTriggers))
 	}
 
-	if rulesSwitch["expression-injection"] {
+	if RulesSwitch["expression-injection"] {
 		res = append(res, rules.NewRuleExpressionInjection(FilterTriggers, FilterRun))
 	}
 
-	if rulesSwitch["dangerous-write"] {
+	if RulesSwitch["dangerous-write"] {
 		res = append(res, rules.NewRuleDangerousWrite(FilterTriggers))
 	}
 
-	if rulesSwitch["local-action"] {
+	if RulesSwitch["local-action"] {
 		res = append(res, rules.NewRuleLocalAction(FilterTriggers))
 	}
 
-	if rulesSwitch["oidc-action"] {
+	if RulesSwitch["oidc-action"] {
 		res = append(res, rules.NewRuleOIDCAction())
 	}
 
-	if rulesSwitch["runner-label"] {
+	if RulesSwitch["runner-label"] {
 		res = append(res, rules.NewRuleRunnerLabel())
 	}
 
-	if rulesSwitch["unsecure-commands"] {
+	if RulesSwitch["unsecure-commands"] {
 		res = append(res, rules.NewRuleUnsecureCommands(FilterTriggers))
 	}
 
-	if rulesSwitch["known-vulnerability"] {
+	if RulesSwitch["known-vulnerability"] {
 		res = append(res, rules.NewRuleKnownVulnerability(FilterTriggers))
 	}
 
 	if DebugRules {
-		if rulesSwitch["debug-external-trigger"] {
+		if RulesSwitch["debug-external-trigger"] {
 			res = append(res, rules.NewRuleDebugExternalTrigger(FilterTriggers))
 		}
 
-		if rulesSwitch["debug-artefacts"] {
+		if RulesSwitch["debug-artefacts"] {
 			res = append(res, rules.NewRuleRuleDebugArtefacts())
 		}
 
-		if rulesSwitch["debug-js-exec"] {
+		if RulesSwitch["debug-js-exec"] {
 			res = append(res, rules.NewRuleDebugJSExec(FilterTriggers))
 		}
 	}
@@ -139,7 +139,7 @@ func offlineRules() []actionlint.Rule {
 func onlineRules() []actionlint.Rule {
 	var res = []actionlint.Rule{}
 
-	if rulesSwitch["repo-jacking"] {
+	if RulesSwitch["repo-jacking"] {
 		res = append(res, rules.NewRuleRepoJacking())
 	}
 

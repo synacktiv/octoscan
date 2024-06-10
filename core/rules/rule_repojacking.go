@@ -75,7 +75,7 @@ func NewRuleRepoJacking() *RuleRepoJacking {
 	return &RuleRepoJacking{
 		RuleBase: actionlint.NewRuleBase(
 			"repo-jacking",
-			"Verify that used actions are pointing to a valid GitHub user or organization.",
+			"Verify that external actions are pointing to a valid GitHub user or organization.",
 		),
 		allActions: make(map[string][]map[string]*actionlint.Pos),
 	}

@@ -72,7 +72,7 @@ func NewRuleExpressionInjection(filterTriggers []string, filterRun bool) *RuleEx
 	return &RuleExpressionInjection{
 		RuleBase: actionlint.NewRuleBase(
 			"expression-injection",
-			"Check expression injection.",
+			"Check for expression injection.",
 		),
 		// note that the map is overloaded in init.go
 		customUntrustedInputSearchRoots: actionlint.BuiltinUntrustedInputs,
