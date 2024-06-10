@@ -11,7 +11,7 @@ import (
 var usageDownload = `Octoscan.
 
 Usage:
-	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --default-branch --path <path> --output-dir <dir>]
+	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --default-branch --max-branches <num> --path <path> --output-dir <dir>]
 
 Options:
 	-h, --help  						Show help

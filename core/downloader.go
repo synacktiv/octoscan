@@ -186,14 +186,14 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 				allBranches = append(allBranches, branche.GetName())
 			}
 
-			if resp.NextPage == 0 {
-				break
-			}
-
 			// truncate array for repos with too much branches
 			if gh.maxBranches != 0 && len(allBranches) >= gh.maxBranches {
 				allBranches = allBranches[:gh.maxBranches]
 
+				break
+			}
+
+			if resp.NextPage == 0 {
 				break
 			}
 

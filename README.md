@@ -41,7 +41,7 @@ $ octoscan dl -h
 Octoscan.
 
 Usage:
-	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --default-branch --path <path> --output-dir <dir>]
+	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --default-branch --max-branches <num> --path <path> --output-dir <dir>]
 
 Options:
 	-h, --help  						Show help
@@ -51,6 +51,7 @@ Options:
 	--repo <repo>						Repository to target
 	--token <pat>						GHP to authenticate to GitHub
 	--default-branch  					Only download workflows from the default branch
+	--max-branches <num>  					Limit the number of branches to download
 	--path <path>						GitHub file path to download [default: .github/workflows]
 	--output-dir <dir>					Output dir where to download files [default: octoscan-output]
 ```
@@ -68,7 +69,7 @@ If you don't know what to run just run this:
 
 It will reduce false positives and give the most interesting results.
 
-If you have downloaded the worflows with the [dl](#download-remote-workflows) command you might have duplicated workflows since by default octoscan will download all the workflows of all the branches. To delete duplicated workflows and speed up the analysis you can use the `fdupes` before running the analysis:
+If you have downloaded the worflows with the [dl](#download-remote-workflows) command you might have duplicated workflows since by default octoscan will download all the workflows of all the branches. To delete duplicated workflows and speed up the analysis you can use the `fdupes` command before running the analysis:
 
 ```sh
 fdupes -n -r -N -d path/to/repo
@@ -80,6 +81,7 @@ $ octoscan scan -h
 octoscan
 
 Usage:
+	octoscan scan [options] --list-rules
 	octoscan scan [options] <target>
 	octoscan scan [options] <target> [--debug-rules --filter-triggers=<triggers> --filter-run --ignore=<pattern> ((--disable-rules | --enable-rules ) <rules>) --config-file <config>]
 
