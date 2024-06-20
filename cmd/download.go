@@ -11,7 +11,7 @@ import (
 var usageDownload = `Octoscan.
 
 Usage:
-	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --default-branch --max-branches <num> --path <path> --output-dir <dir>]
+	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --default-branch --max-branches <num> --path <path> --output-dir <dir> --include-archives]
 
 Options:
 	-h, --help  						Show help
@@ -24,6 +24,7 @@ Options:
 	--max-branches <num>  					Limit the number of branches to download
 	--path <path>  						GitHub file path to download [default: .github/workflows]
 	--output-dir <dir>  					Output dir where to download files [default: octoscan-output]
+	--include-archives  					Also download archived repositories
 
 `
 
@@ -46,6 +47,7 @@ func runDownloader(args docopt.Opts) error {
 		Token:             token,
 		DefaultBranchOnly: args["--default-branch"].(bool),
 		MaxBranches:       maxBranches,
+		IncludeArchives:   args["--include-archives"].(bool),
 	}
 
 	gh := core.NewGitHub(ghOpts)
