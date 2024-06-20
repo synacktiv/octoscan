@@ -22,6 +22,7 @@ type GitHub struct {
 	count             int
 	defaultBranchOnly bool
 	maxBranches       int
+	includeArchives   bool
 }
 
 type GitHubOptions struct {
@@ -32,6 +33,7 @@ type GitHubOptions struct {
 	OutputDir         string
 	DefaultBranchOnly bool
 	MaxBranches       int
+	IncludeArchives   bool
 }
 
 func NewGitHub(opts GitHubOptions) *GitHub {
@@ -150,8 +152,6 @@ func (gh *GitHub) getUserRepos() ([]*github.Repository, error) {
 }
 
 func (gh *GitHub) DownloadRepo(repo string) error {
-	common.Log.Info(fmt.Sprintf("Downloading files of repo: %s", repo))
-
 	// check rate limit
 	err := gh.checkRateLimit()
 	if err != nil {
@@ -169,6 +169,14 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 
 		return err
 	}
+
+	if !gh.includeArchives && *repository.Archived {
+		common.Log.Debug(fmt.Sprintf("Not including %s because it has been archived", repo))
+
+		return nil
+	}
+
+	common.Log.Info(fmt.Sprintf("Downloading files of repo: %s", repo))
 
 	allBranches = append(allBranches, *repository.DefaultBranch)
 

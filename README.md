@@ -42,19 +42,20 @@ $ octoscan dl -h
 Octoscan.
 
 Usage:
-	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --default-branch --max-branches <num> --path <path> --output-dir <dir>]
+	octoscan dl [options] --org <org> [--repo <repo> --token <pat> --default-branch --max-branches <num> --path <path> --output-dir <dir> --include-archives]
 
 Options:
 	-h, --help  						Show help
 	-d, --debug  						Debug output
 	--verbose  						Verbose output
-	--org <org> 						Organizations to target
-	--repo <repo>						Repository to target
-	--token <pat>						GHP to authenticate to GitHub
+	--org <org>  						Organizations to target
+	--repo <repo>  						Repository to target
+	--token <pat>  						GHP to authenticate to GitHub
 	--default-branch  					Only download workflows from the default branch
 	--max-branches <num>  					Limit the number of branches to download
-	--path <path>						GitHub file path to download [default: .github/workflows]
-	--output-dir <dir>					Output dir where to download files [default: octoscan-output]
+	--path <path>  						GitHub file path to download [default: .github/workflows]
+	--output-dir <dir>  					Output dir where to download files [default: octoscan-output]
+	--include-archives  					Also download archived repositories
 ```
 
 ```sh
