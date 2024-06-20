@@ -4,10 +4,11 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"octoscan/common"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/synacktiv/octoscan/common"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"

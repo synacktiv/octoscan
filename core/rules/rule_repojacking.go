@@ -3,9 +3,10 @@ package rules
 import (
 	"fmt"
 	"net/http"
-	"octoscan/common"
 	"strings"
 	"time"
+
+	"github.com/synacktiv/octoscan/common"
 
 	"github.com/rhysd/actionlint"
 )

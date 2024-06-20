@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"octoscan/cmd"
-	"octoscan/common"
 	"os"
+
+	"github.com/synacktiv/octoscan/cmd"
+	"github.com/synacktiv/octoscan/common"
 
 	"github.com/docopt/docopt-go"
 )

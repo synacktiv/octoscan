@@ -1,9 +1,10 @@
 package rules
 
 import (
-	"octoscan/common"
 	"regexp"
 	"strings"
+
+	"github.com/synacktiv/octoscan/common"
 
 	"github.com/rhysd/actionlint"
 )

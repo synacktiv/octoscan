@@ -2,10 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"octoscan/common"
-	"octoscan/core"
 	"os"
 	"strings"
+
+	"github.com/synacktiv/octoscan/common"
+	"github.com/synacktiv/octoscan/core"
 
 	"github.com/docopt/docopt-go"
 	"github.com/fatih/color"

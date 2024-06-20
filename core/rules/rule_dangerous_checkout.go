@@ -1,8 +1,9 @@
 package rules
 
 import (
-	"octoscan/common"
 	"strings"
+
+	"github.com/synacktiv/octoscan/common"
 
 	"github.com/rhysd/actionlint"
 )

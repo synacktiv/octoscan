@@ -1,9 +1,10 @@
 package cmd
 
 import (
-	"octoscan/common"
-	"octoscan/core"
 	"strings"
+
+	"github.com/synacktiv/octoscan/common"
+	"github.com/synacktiv/octoscan/core"
 
 	"github.com/docopt/docopt-go"
 )

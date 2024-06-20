@@ -2,9 +2,10 @@ package rules
 
 import (
 	"bufio"
-	"octoscan/common"
 	"regexp"
 	"strings"
+
+	"github.com/synacktiv/octoscan/common"
 
 	"github.com/rhysd/actionlint"
 )

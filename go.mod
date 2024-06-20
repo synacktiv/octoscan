@@ -1,4 +1,4 @@
-module octoscan
+module github.com/synacktiv/octoscan
 
 go 1.21.10
 

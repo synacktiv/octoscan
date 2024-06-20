@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"octoscan/common"
-	"octoscan/core/rules"
+	"github.com/synacktiv/octoscan/common"
+	"github.com/synacktiv/octoscan/core/rules"
 
 	"github.com/rhysd/actionlint"
 )
