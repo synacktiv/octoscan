@@ -4,21 +4,24 @@ go 1.21.10
 
 toolchain go1.21.11
 
-replace github.com/rhysd/actionlint => github.com/hugo-syn/actionlint v0.0.0-20240610195447-69a5f9855004
+// well I have a PR that is not merged: https://github.com/rhysd/actionlint/pull/332
+// and I can"t use go install with replace directive: https://github.com/golang/go/issues/44840
+// do you have any idea ?
+replace github.com/rhysd/actionlint => github.com/hugo-syn/actionlint v0.0.0-20240620182217-ad2709b475db
 
 require (
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
+	github.com/fatih/color v1.17.0
 	github.com/google/go-github v17.0.0+incompatible
+	github.com/google/osv-scanner v1.7.4
+	github.com/hashicorp/go-version v1.7.0
 	github.com/rhysd/actionlint v1.7.1
 	golang.org/x/oauth2 v0.19.0
 )
 
 require (
-	github.com/fatih/color v1.17.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
-	github.com/google/osv-scanner v1.7.4 // indirect
-	github.com/hashicorp/go-version v1.7.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect

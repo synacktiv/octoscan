@@ -28,6 +28,8 @@ github.com/hugo-syn/actionlint v0.0.0-20231020100615-340fcb1876cf h1:d6kLInOh8by
 github.com/hugo-syn/actionlint v0.0.0-20231020100615-340fcb1876cf/go.mod h1:TIj1DlCgtYLOv5CH9wCK+WJTOr1qAdnFzkGi0IgSCO4=
 github.com/hugo-syn/actionlint v0.0.0-20240610195447-69a5f9855004 h1:2Pnq7BZbCKJSvFMxdqGJTYMbdacYfDhino87gbxDkJg=
 github.com/hugo-syn/actionlint v0.0.0-20240610195447-69a5f9855004/go.mod h1:lNjNNlZY0BdBl8l837Z9ZiBpu8v+5lzfoJQFdSk4xss=
+github.com/hugo-syn/actionlint v0.0.0-20240620182217-ad2709b475db h1:iFVn80a+x5TRRL8HnKGWuqbkEjh5kbIpNiC04NjEa+o=
+github.com/hugo-syn/actionlint v0.0.0-20240620182217-ad2709b475db/go.mod h1:lNjNNlZY0BdBl8l837Z9ZiBpu8v+5lzfoJQFdSk4xss=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=
 github.com/mattn/go-colorable v0.1.13/go.mod h1:7S9/ev0klgBDR4GtXTXX8a3vIGJpMovkB8vQcUbaXHg=
 github.com/mattn/go-isatty v0.0.16/go.mod h1:kYGgaQfpe5nmfYZH+SKPsOc2e4SrIfOl2e/yFXSvRLM=

@@ -53,8 +53,12 @@ var stepsOutputData = actionlint.NewUntrustedInputMap("steps",
 	),
 )
 
+var envUntrustedInput = actionlint.NewUntrustedInputMap("env",
+	actionlint.NewUntrustedInputMap("**"),
+)
+
 var CustomUntrustedInputSearchRoots = []*actionlint.UntrustedInputMap{
-	// envUntrustedInputSearchRoots,
+	envUntrustedInput,
 	needsOutputData,
 	stepsOutputData,
 }
