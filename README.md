@@ -152,10 +152,10 @@ Triggers like `workflow_run` or `pull_request_target` run in a privileged contex
 #### examples
 
 - [FreeRDP](https://github.com/FreeRDP/FreeRDP/pull/10209)
-- Excalidraw (Blog post incoming)
-- AutoGPT (Blog post incoming)
-- Cypress (Blog post incoming)
-- Apache Doris (Blog post incoming)
+- [Excalidraw](https://www.synacktiv.com/publications/github-actions-exploitation-untrusted-input)
+- [AutoGPT](https://www.synacktiv.com/publications/github-actions-exploitation-untrusted-input)
+- [Cypress](https://www.synacktiv.com/publications/github-actions-exploitation-untrusted-input)
+- [Apache Doris](https://www.synacktiv.com/publications/github-actions-exploitation-untrusted-input)
 - [Angular](https://github.com/angular/angular/blob/6b20561e1d6810e867c0ee7692d9fae64426a876/.github/workflows/ci-privileged.yml#L4)
 
 ### dangerous-action
@@ -169,9 +169,9 @@ It is common practice to use artifacts to pass data between different workflows.
 
 #### examples
 
-- ant-design (Blog post incoming)
-- Swagger-editor (Blog post incoming)
-- Firebase (Blog post incoming)
+- [ant-design](https://www.synacktiv.com/publications/github-actions-exploitation-untrusted-input)
+- [Swagger-editor](https://www.synacktiv.com/publications/github-actions-exploitation-repo-jacking-and-environment-manipulation)
+- [Firebase](https://www.synacktiv.com/publications/github-actions-exploitation-repo-jacking-and-environment-manipulation)
 - [Firebase](https://www.legitsecurity.com/blog/github-privilege-escalation-vulnerability-0)
 - [Rust](https://www.legitsecurity.com/blog/artifact-poisoning-vulnerability-discovered-in-rust)
 
@@ -183,8 +183,8 @@ GitHub will create default environment variables that can be used inside every s
 
 #### examples
 
-- Swagger-editor (Blog post incoming)
-- dgraph-io/badger
+- [Swagger-editor](https://www.synacktiv.com/publications/github-actions-exploitation-repo-jacking-and-environment-manipulation)
+- [dgraph-io/badger](https://github.com/dgraph-io/badger/blob/6acc8e801739f6702b8d95f462b8d450b9a0455b/.github/workflows/ci-badger-tests-coverage.yml#L13)
 - [Firebase](https://www.legitsecurity.com/blog/github-privilege-escalation-vulnerability-0)
 - [microsoft/vscode-github-triage-actions](https://bugs.chromium.org/p/project-zero/issues/detail?id=2070)
 
@@ -218,8 +218,8 @@ However, some elements can be controlled by an attacker and should be sanitized 
 
 #### examples
 
-- AutoGPT (Blog post incoming)
-- microsoft/generative-ai-for-beginners (Blog post incoming)
+- [AutoGPT](https://www.synacktiv.com/publications/github-actions-exploitation-untrusted-input)
+- [microsoft/generative-ai-for-beginners](https://www.synacktiv.com/publications/github-actions-exploitation-untrusted-input)
 
 ### runner-label
 
@@ -233,11 +233,11 @@ Non-ephemeral runners can be identified by looking at run logs. A tool called [g
 
 #### examples
 
-- Haskell (Blog post incoming)
-- lovell/sharp (Blog post incoming)
-- WasmEdge
-- Scroll (Blog post incoming)
-- Akash Network (Blog post incoming)
+- [Haskell](https://www.synacktiv.com/publications/github-actions-exploitation-self-hosted-runners)
+- [lovell/Sharp](https://www.synacktiv.com/publications/github-actions-exploitation-self-hosted-runners)
+- [WasmEdge](https://www.synacktiv.com/publications/github-actions-exploitation-self-hosted-runner)
+- [Scroll](https://www.synacktiv.com/publications/github-actions-exploitation-self-hosted-runners)
+- [Akash Network](https://www.synacktiv.com/publications/github-actions-exploitation-self-hosted-runners)
 - [actions/runner-images](https://adnanthekhan.com/2023/12/20/one-supply-chain-attack-to-rule-them-all)
 - [tensorflow](https://www.praetorian.com/blog/tensorflow-supply-chain-compromise-via-self-hosted-runner-attack/)
 - [pytorch](https://johnstawinski.com/2024/01/11/playing-with-fire-how-we-executed-a-critical-supply-chain-attack-on-pytorch/)
@@ -253,7 +253,7 @@ Note that this rule needs internet to check wether the attack is possible or not
 
 #### examples
 
-- Azure/bicep-registry-modules (Blog post incoming)
+- [Azure/bicep-registry-modules](https://www.synacktiv.com/publications/github-actions-exploitation-repo-jacking-and-environment-manipulation)
 - [HangfireIO/Hangfire](https://www.paloaltonetworks.com/blog/prisma-cloud/github-actions-worm-dependencies/)
 
 
@@ -276,7 +276,7 @@ Although the `set-env` command is deprecated and unusable by default, if a devel
 
 #### examples
 
-- [alibaba/nacos](https://github.com/alibaba/nacos/commit/dd385294f56a6e27087aae927b4af2c4a231abd3) (Not found by us)
+- [alibaba/nacos](https://www.synacktiv.com/publications/github-actions-exploitation-repo-jacking-and-environment-manipulation)
 
 ### known-vulnerability
 
@@ -306,5 +306,9 @@ This tool could not have been developed without [actionlint](https://github.com/
 
 ## Resources
 
+- [GitHub Actions exploitation: introduction](https://www.synacktiv.com/publications/github-actions-exploitation-introduction)
+- [GitHub Actions exploitation: untrusted input](https://www.synacktiv.com/publications/github-actions-exploitation-untrusted-input)
+- [GitHub Actions exploitation: repo jacking and environment manipulation](https://www.synacktiv.com/publications/github-actions-exploitation-repo-jacking-and-environment-manipulation)
+- [GitHub Actions exploitation: self hosted runners](https://www.synacktiv.com/publications/github-actions-exploitation-self-hosted-runners)
 - https://0xn3va.gitbook.io/cheat-sheets/ci-cd/github/actions
 - https://cloud.hacktricks.xyz/pentesting-ci-cd/github-security
