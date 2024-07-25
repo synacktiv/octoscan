@@ -147,7 +147,8 @@ func onlineRules() []actionlint.Rule {
 }
 
 // LintRepositoryRecurse search for all GitHub project recursively and run the linter
-func (l *OctoLinter) LintRepositoryRecurse(dir string) {
+func (l *OctoLinter) LintRepositoryRecurse(dir string) ([]*actionlint.Error, error) {
+	var lintErrors []*actionlint.Error
 	if err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -155,13 +156,16 @@ func (l *OctoLinter) LintRepositoryRecurse(dir string) {
 
 		w := filepath.Join(path, ".github", "workflows")
 		if s, err := os.Stat(w); err == nil && s.IsDir() {
-			l.LintRepository(w)
+			if lintErrorsBatch, err := l.LintRepository(w); err == nil {
+				lintErrors = append(lintErrors, lintErrorsBatch...)
+			}
 
 			return fs.SkipDir
 		}
 
 		return nil
 	}); err != nil {
-		common.Log.Error(fmt.Errorf("could not read files in %q: %w", "./", err))
+		return nil, fmt.Errorf("could not read files in %q: %w", "./", err)
 	}
+	return lintErrors, nil
 }
