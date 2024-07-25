@@ -35,6 +35,7 @@ var (
 		"runner-label":           true,
 		"unsecure-commands":      true,
 		"known-vulnerability":    true,
+		"bot-check":              true,
 		"debug-external-trigger": true,
 		"debug-artefacts":        true,
 		"debug-js-exec":          true,
@@ -117,6 +118,10 @@ func offlineRules() []actionlint.Rule {
 
 	if RulesSwitch["known-vulnerability"] {
 		res = append(res, rules.NewRuleKnownVulnerability(FilterTriggers))
+	}
+
+	if RulesSwitch["bot-check"] {
+		res = append(res, rules.NewRuleBotCheck(FilterTriggers))
 	}
 
 	if DebugRules {
