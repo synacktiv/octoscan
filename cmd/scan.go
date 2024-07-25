@@ -77,9 +77,13 @@ func runScanner(args docopt.Opts) error {
 
 	if common.IsDirectory(file) {
 		octoLinter := &core.OctoLinter{Linter: *l}
-		octoLinter.LintRepositoryRecurse(file)
+		_, err = octoLinter.LintRepositoryRecurse(file)
 	} else {
-		l.LintFile(file, nil)
+		_, err = l.LintFile(file, nil)
+	}
+
+	if err != nil {
+		common.Log.Error(err)
 	}
 
 	return nil
