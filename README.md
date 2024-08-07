@@ -297,6 +297,8 @@ jobs:
 
 The idea of the attack is to trigger Dependabot on a forked repository in such a way that a PR on the forked repository is made by Dependabot, then a PR from the Dependabot branch is opened on the vulnerable repository and finally Dependabot is triggered again to launch the vulnerable workflow.
 
+![dependabot](img/dependabot.png)
+
 You can find all the exploitation details here: https://www.synacktiv.com/publications/github-actions-exploitation-dependabot
 
 #### examples
