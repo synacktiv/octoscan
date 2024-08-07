@@ -60,7 +60,7 @@ func (rule *RuleBotCheck) checkBotActor(ifStr *actionlint.String) {
 				Line:    pos.Line,
 				Column:  pos.Col,
 			}
-			err.Column -= len("downloadArtifact")
+			err.Column -= len("github.actor")
 			exprError(&rule.RuleBase, err, ifStr.Pos.Line, ifStr.Pos.Col)
 		}
 	}

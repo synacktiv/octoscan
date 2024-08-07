@@ -18,6 +18,7 @@ Octoscan is a static vulnerability scanner for GitHub action workflows.
 		- [runner-label](#runner-label)
 		- [repo-jacking](#repo-jacking)
 		- [unsecure-commands](#unsecure-commands)
+		- [bot-check](#bot-check)
 		- [known-vulnerability](#known-vulnerability)
 		- [credentials](#credentials)
 		- [shellcheck](#shellcheck)
@@ -114,7 +115,7 @@ Examples:
 The complete list of rules can be found with this command:
 ```
 $ octoscan scan --list-rules  
-2024/06/11 00:00:09 [INFO] Available rules
+2024/08/07 16:50:48 [INFO] Available rules
 - dangerous-action
 	Check for dangerous actions.
 - dangerous-checkout
@@ -133,6 +134,8 @@ $ octoscan scan --list-rules
 	Check 'ACTIONS_ALLOW_UNSECURE_COMMANDS' env variable.
 - known-vulnerability
 	Check for known vulnerabilities.
+- bot-check
+	Check for if statements that are based on a bot identity.
 - debug-external-trigger
 	Check for workflow that can be externally triggered.
 - debug-artefacts
@@ -278,6 +281,30 @@ Although the `set-env` command is deprecated and unusable by default, if a devel
 
 - [alibaba/nacos](https://www.synacktiv.com/publications/github-actions-exploitation-repo-jacking-and-environment-manipulation)
 
+
+### bot-check
+
+It's possible to bypass the following check:
+
+```yaml
+jobs:
+  merge-dependabot-pr:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    steps:
+		...
+```
+
+The idea of the attack is to trigger Dependabot on a forked repository in such a way that a PR on the forked repository is made by Dependabot, then a PR from the Dependabot branch is opened on the vulnerable repository and finally Dependabot is triggered again to launch the vulnerable workflow.
+
+You can find all the exploitation details here: https://www.synacktiv.com/publications/github-actions-exploitation-dependabot
+
+#### examples
+
+- [spring-projects/spring-security](https://www.synacktiv.com/publications/github-actions-exploitation-dependabot)
+- [spring-projects/spring-session](https://www.synacktiv.com/publications/github-actions-exploitation-dependabot)
+- [trpc/trpc](https://www.synacktiv.com/publications/github-actions-exploitation-dependabot)
+
 ### known-vulnerability
 
 Search for known vulnerable actions based on [osv.dev](https://osv.dev/list?ecosystem=GitHub+Actions&q=).
@@ -310,5 +337,6 @@ This tool could not have been developed without [actionlint](https://github.com/
 - [GitHub Actions exploitation: untrusted input](https://www.synacktiv.com/publications/github-actions-exploitation-untrusted-input)
 - [GitHub Actions exploitation: repo jacking and environment manipulation](https://www.synacktiv.com/publications/github-actions-exploitation-repo-jacking-and-environment-manipulation)
 - [GitHub Actions exploitation: self hosted runners](https://www.synacktiv.com/publications/github-actions-exploitation-self-hosted-runners)
+- [GitHub Actions exploitation: Dependabot](https://www.synacktiv.com/publications/github-actions-exploitation-dependabot)
 - https://0xn3va.gitbook.io/cheat-sheets/ci-cd/github/actions
 - https://cloud.hacktricks.xyz/pentesting-ci-cd/github-security
