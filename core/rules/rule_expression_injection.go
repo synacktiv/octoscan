@@ -24,7 +24,7 @@ THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 /*
 this is a copy of https://github.com/rhysd/actionlint/blob/main/rule_expression.go
-I need to add new UntrustedInput and check for expression injection in some fileds but not all.
+I need to add new UntrustedInput and check for expression injection in some fields but not all.
 */
 
 package rules
@@ -238,7 +238,7 @@ func (rule *RuleExpressionInjection) checkExpressionInjection(expr actionlint.Ex
 	return errs
 }
 
-// that's crapy code but the rule_expression.go from actionlint enfore all expression checks
+// that's crapy code but the rule_expression.go from actionlint enforce all expression checks
 // I just want insecure checks but I can't add new methods to non local package
 func inspectExprNode(expr actionlint.ExprNode, untrusted *actionlint.UntrustedInputChecker) {
 	defer untrusted.OnVisitNodeLeave(expr)

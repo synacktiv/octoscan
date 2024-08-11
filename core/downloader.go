@@ -191,8 +191,8 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 				return err
 			}
 
-			for _, branche := range branches {
-				allBranches = append(allBranches, branche.GetName())
+			for _, branch := range branches {
+				allBranches = append(allBranches, branch.GetName())
 			}
 
 			// truncate array for repos with too much branches
