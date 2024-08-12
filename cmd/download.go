@@ -62,7 +62,7 @@ func runDownloader(args docopt.Opts) error {
 	return err
 }
 
-func Download(inputArgs []string) error {
+func Download(inputArgs []string) int {
 	parser := &docopt.Parser{}
 	args, _ := parser.ParseArgs(usageDownload, inputArgs, "")
 
@@ -76,5 +76,10 @@ func Download(inputArgs []string) error {
 
 	common.Log.Debug(args)
 
-	return runDownloader(args)
+	err := runDownloader(args)
+	if err != nil {
+		return common.ExitStatusFailure
+	}
+
+	return common.ExitStatusSuccessNoProblem
 }

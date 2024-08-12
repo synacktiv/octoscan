@@ -7,6 +7,15 @@ import (
 	"time"
 )
 
+const (
+	// ExitStatusSuccessNoProblem is the exit status when the command ran successfully with no problem found.
+	ExitStatusSuccessNoProblem = 0
+	// ExitStatusFailure is the exit status when the command stopped due to some fatal error while checking workflows.
+	ExitStatusFailure = 1
+	// ExitStatusSuccessProblemFound is the exit status when the command ran successfully with some problem found.
+	ExitStatusSuccessProblemFound = 2
+)
+
 // regexp for rules
 
 var LettersRegexp = regexp.MustCompile("^[a-zA-Z]+$")

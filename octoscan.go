@@ -34,12 +34,10 @@ func main() {
 	cmdArgs := args["<args>"].([]string)
 
 	err := runCommand(cmd, cmdArgs)
-	if err != nil {
-		os.Exit(1)
-	}
+	os.Exit(err)
 }
 
-func runCommand(command string, args []string) error {
+func runCommand(command string, args []string) int {
 	argv := append([]string{command}, args...)
 
 	switch command {
@@ -50,6 +48,6 @@ func runCommand(command string, args []string) error {
 	default:
 		common.Log.Info(fmt.Sprintf("%s is not a octoscan command. See 'octoscan --help'", command))
 
-		return nil
+		return common.ExitStatusFailure
 	}
 }

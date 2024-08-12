@@ -63,33 +63,40 @@ func checkInternet(args docopt.Opts) {
 	}
 }
 
-func runScanner(args docopt.Opts) error {
+func runScanner(args docopt.Opts) int {
+	var errs []*actionlint.Error
 	opts := setScannerArgs(args)
 
 	checkInternet(args)
 
 	l, err := actionlint.NewLinter(os.Stdout, &opts)
 	if err != nil {
-		return err
+		return common.ExitStatusFailure
 	}
 
 	file, _ := args.String("<target>")
 
 	if common.IsDirectory(file) {
 		octoLinter := &core.OctoLinter{Linter: *l}
-		_, err = octoLinter.LintRepositoryRecurse(file)
+		errs, err = octoLinter.LintRepositoryRecurse(file)
 	} else {
-		_, err = l.LintFile(file, nil)
+		errs, err = l.LintFile(file, nil)
 	}
 
 	if err != nil {
 		common.Log.Error(err)
+
+		return common.ExitStatusFailure
 	}
 
-	return nil
+	if len(errs) > 0 {
+		return common.ExitStatusSuccessProblemFound // Linter found some issues, yay!
+	}
+
+	return common.ExitStatusSuccessNoProblem
 }
 
-func listRules() error {
+func listRules() int {
 	yellow := color.New(color.FgYellow)
 	core.DebugRules = true
 	rules := &[]actionlint.Rule{}
@@ -104,7 +111,7 @@ func listRules() error {
 		fmt.Printf("\t%v\n", rule.Description())
 	}
 
-	return nil
+	return common.ExitStatusSuccessNoProblem
 }
 
 func setCoreParameter(args docopt.Opts) {
@@ -175,7 +182,7 @@ func setScannerArgs(args docopt.Opts) actionlint.LinterOptions {
 	return opts
 }
 
-func Scan(inputArgs []string) error {
+func Scan(inputArgs []string) int {
 	parser := &docopt.Parser{}
 	args, _ := parser.ParseArgs(usageScan, inputArgs, "")
 
