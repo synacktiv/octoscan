@@ -30,7 +30,7 @@ Options:
 
 Args:
 	<target>					Target File or directory to scan
-	--filter-triggers <triggers>			Scan workflows with specific triggers (comma separated list: "push,pull_request_target")
+	--filter-triggers <triggers>			Scan workflows with specific triggers (comma separated list: "push,pull_request_target" or pre-configured: external/allnopr)
 	--filter-run					Search for expression injection only in run shell scripts.
 	--ignore <pattern>				Regular expression matching to error messages you want to ignore.
 	--disable-rules <rules>				Disable specific rules. Split on ","
