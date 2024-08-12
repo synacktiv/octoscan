@@ -72,7 +72,7 @@ If you don't know what to run just run this:
 
 It will reduce false positives and give the most interesting results.
 
-If you have downloaded the worflows with the [dl](#download-remote-workflows) command you might have duplicated workflows since by default octoscan will download all the workflows of all the branches. To delete duplicated workflows and speed up the analysis you can use the `fdupes` command before running the analysis:
+If you have downloaded the workflows with the [dl](#download-remote-workflows) command you might have duplicated workflows since by default octoscan will download all the workflows of all the branches. To delete duplicated workflows and speed up the analysis you can use the `fdupes` command before running the analysis:
 
 ```sh
 fdupes -n -r -N -d path/to/repo
@@ -252,7 +252,7 @@ The repo jacking vulnerability was [presented](https://media.defcon.org/DEF%20CO
 
 ![AcalaNetwork](img/AcalaNetwork.png)
 
-Note that this rule needs internet to check wether the attack is possible or not. All other checks are performed offline.
+Note that this rule needs internet to check whether the attack is possible or not. All other checks are performed offline.
 
 #### examples
 

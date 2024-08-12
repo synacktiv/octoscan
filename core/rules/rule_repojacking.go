@@ -12,7 +12,7 @@ import (
 )
 
 // stolen from actionlint.PopularActions
-var knwonOrgs = []string{
+var knownOrgs = []string{
 	"aochmann",
 	"bettermarks",
 	"blablacar",
@@ -167,7 +167,7 @@ func (rule *RuleRepoJacking) VisitWorkflowPost(n *actionlint.Workflow) error {
 }
 
 func isKnownOrg(org string) bool {
-	for _, known := range knwonOrgs {
+	for _, known := range knownOrgs {
 		if known == org {
 			return true
 		}
