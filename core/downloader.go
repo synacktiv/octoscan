@@ -111,7 +111,7 @@ func (gh *GitHub) getRepos() ([]*github.Repository, error) {
 	var err error
 
 	// we only want one repo
-	if gh.repo == "" {
+	if gh.repo != "" {
 		repo, err := gh.getSingleRepo(gh.repo)
 		if err != nil {
 			return nil, err
