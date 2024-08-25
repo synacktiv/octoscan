@@ -19,11 +19,13 @@ type GitHub struct {
 	ctx               context.Context
 	path              string
 	org               string
+	repo              string
 	outputDir         string
 	count             int
 	defaultBranchOnly bool
 	maxBranches       int
 	includeArchives   bool
+	includeForks      bool
 }
 
 type GitHubOptions struct {
@@ -31,10 +33,12 @@ type GitHubOptions struct {
 	Token             string
 	Path              string
 	Org               string
+	Repo              string
 	OutputDir         string
 	DefaultBranchOnly bool
 	MaxBranches       int
 	IncludeArchives   bool
+	IncludeForks      bool
 }
 
 func NewGitHub(opts GitHubOptions) *GitHub {
@@ -52,26 +56,103 @@ func NewGitHub(opts GitHubOptions) *GitHub {
 		ctx:               ctx,
 		path:              opts.Path,
 		org:               opts.Org,
+		repo:              opts.Repo,
 		outputDir:         opts.OutputDir,
 		defaultBranchOnly: opts.DefaultBranchOnly,
 		count:             0,
 		maxBranches:       opts.MaxBranches,
+		includeForks:      opts.IncludeForks,
 	}
 }
 
 func (gh *GitHub) Download() error {
-	common.Log.Info(fmt.Sprintf("Downloading files of org: %s", gh.org))
-
 	// get all repos with pagination
 	var allRepos []*github.Repository
 
 	var err error
 
+	allRepos, err = gh.getRepos()
+
+	if err != nil {
+		return err
+	}
+
+	for _, repo := range allRepos {
+		if !gh.includeForks && repo.GetFork() {
+			common.Log.Debug(fmt.Sprintf("Not including %s because it's a fork", repo.GetName()))
+
+			continue
+		}
+
+		if !gh.includeArchives && *repo.Archived {
+			common.Log.Debug(fmt.Sprintf("Not including %s because it has been archived", repo.GetName()))
+
+			continue
+		}
+
+		// check rate limit
+		err := gh.checkRateLimit()
+		if err != nil {
+			return err
+		}
+
+		err = gh.DownloadRepo(repo)
+		if err != nil {
+			common.Log.Error(fmt.Sprintf("Error while downloading files of repo: %s", repo.GetName()))
+		}
+	}
+
+	return nil
+}
+
+func (gh *GitHub) getRepos() ([]*github.Repository, error) {
+	var allRepos []*github.Repository
+
+	var err error
+
+	// we only want one repo
+	if gh.repo == "" {
+		repo, err := gh.getSingleRepo(gh.repo)
+		if err != nil {
+			return nil, err
+		}
+
+		if repo != nil {
+			allRepos = append(allRepos, repo)
+		}
+	} else {
+		// we want all the repositories
+		allRepos, err = gh.getOrgOrUserRepos()
+
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return allRepos, nil
+}
+
+func (gh *GitHub) getSingleRepo(repo string) (*github.Repository, error) {
+	repository, _, err := gh.client.Repositories.Get(gh.ctx, gh.org, repo)
+	if err != nil {
+		common.Log.Error(fmt.Sprintf("Fail to find repository %s: %v", repo, err))
+
+		return nil, err
+	}
+
+	return repository, nil
+}
+
+func (gh *GitHub) getOrgOrUserRepos() ([]*github.Repository, error) {
+	var allRepos []*github.Repository
+
+	common.Log.Info(fmt.Sprintf("Downloading files of org: %s", gh.org))
+
 	user, _, err := gh.client.Users.Get(gh.ctx, gh.org)
 	if err != nil {
 		common.Log.Error(fmt.Sprintf("Fail to determine if %s is a user or an org: %v", gh.org, err))
 
-		return err
+		return nil, err
 	}
 
 	if user.GetType() == "Organization" {
@@ -80,24 +161,7 @@ func (gh *GitHub) Download() error {
 		allRepos, err = gh.getUserRepos()
 	}
 
-	if err != nil {
-		return err
-	}
-
-	for _, repo := range allRepos {
-		// check rate limit
-		err := gh.checkRateLimit()
-		if err != nil {
-			return err
-		}
-
-		err = gh.DownloadRepo(repo.GetName())
-		if err != nil {
-			common.Log.Error(fmt.Sprintf("Error while downloading files of repo: %s", repo.GetName()))
-		}
-	}
-
-	return nil
+	return allRepos, err
 }
 
 func (gh *GitHub) getOrgRepos() ([]*github.Repository, error) {
@@ -152,7 +216,7 @@ func (gh *GitHub) getUserRepos() ([]*github.Repository, error) {
 	return allRepos, nil
 }
 
-func (gh *GitHub) DownloadRepo(repo string) error {
+func (gh *GitHub) DownloadRepo(repository *github.Repository) error {
 	// check rate limit
 	err := gh.checkRateLimit()
 	if err != nil {
@@ -163,30 +227,16 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 
 	opt := &github.ListOptions{}
 
-	// Get the default branch by default
-	repository, _, err := gh.client.Repositories.Get(gh.ctx, gh.org, repo)
-	if err != nil {
-		common.Log.Error(fmt.Sprintf("Fail to find repository %s: %v", repo, err))
-
-		return err
-	}
-
-	if !gh.includeArchives && *repository.Archived {
-		common.Log.Debug(fmt.Sprintf("Not including %s because it has been archived", repo))
-
-		return nil
-	}
-
-	common.Log.Info(fmt.Sprintf("Downloading files of repo: %s", repo))
+	common.Log.Info(fmt.Sprintf("Downloading files of repo: %s", repository.GetName()))
 
 	allBranches = append(allBranches, *repository.DefaultBranch)
 
 	if !gh.defaultBranchOnly {
 		for {
-			branches, resp, err := gh.client.Repositories.ListBranches(gh.ctx, gh.org, repo, opt)
+			branches, resp, err := gh.client.Repositories.ListBranches(gh.ctx, gh.org, repository.GetName(), opt)
 
 			if err != nil {
-				common.Log.Error(fmt.Sprintf("Fail to list branches of repository %s: %v", repo, err))
+				common.Log.Error(fmt.Sprintf("Fail to list branches of repository %s: %v", repository.GetName(), err))
 
 				return err
 			}
@@ -208,17 +258,25 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 
 			opt.Page = resp.NextPage
 		}
-
 	}
 
-	for _, branch := range allBranches {
+	err = gh.DownloadContentFromBranches(repository, allBranches)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (gh *GitHub) DownloadContentFromBranches(repository *github.Repository, branches []string) error {
+	for _, branch := range branches {
 		// check rate limit
 		err := gh.checkRateLimit()
 		if err != nil {
 			return err
 		}
 
-		err = gh.DownloadContentFromBranch(repo, branch, gh.path)
+		err = gh.DownloadContentFromBranch(repository.GetName(), branch)
 		if err != nil {
 			common.Log.Error(err)
 		}
@@ -227,17 +285,17 @@ func (gh *GitHub) DownloadRepo(repo string) error {
 	return nil
 }
 
-func (gh *GitHub) DownloadContentFromBranch(repo string, branch string, path string) error {
-	fileContent, directoryContent, res, err := gh.client.Repositories.GetContents(gh.ctx, gh.org, repo, path, &github.RepositoryContentGetOptions{Ref: branch})
+func (gh *GitHub) DownloadContentFromBranch(repo string, branch string) error {
+	fileContent, directoryContent, res, err := gh.client.Repositories.GetContents(gh.ctx, gh.org, repo, gh.path, &github.RepositoryContentGetOptions{Ref: branch})
 
 	if res != nil && res.Status != "200 OK" {
-		common.Log.Debug(fmt.Sprintf("Fail to get %s of repository %s (%s): path doesn't exist", path, repo, branch))
+		common.Log.Debug(fmt.Sprintf("Fail to get %s of repository %s (%s): path doesn't exist", gh.path, repo, branch))
 
 		return nil
 	}
 
 	if err != nil {
-		return fmt.Errorf("fail to get %s of repository %s (%s): %w", path, repo, branch, err)
+		return fmt.Errorf("fail to get %s of repository %s (%s): %w", gh.path, repo, branch, err)
 	}
 
 	// create the dir for output
@@ -251,14 +309,13 @@ func (gh *GitHub) DownloadContentFromBranch(repo string, branch string, path str
 		return gh.saveFileContent(fileContent, repo, branch)
 	} else if directoryContent != nil {
 		// TODO doing it twice need to change
-		return gh.downloadDirectory(repo, branch, path)
+		return gh.downloadDirectory(repo, branch, gh.path)
 	}
 
 	return nil
 }
 
 func (gh *GitHub) downloadFile(repo string, branch string, path string) error {
-
 	// check rate limit before downloading
 	if gh.count%100 == 0 {
 		err := gh.checkRateLimit()

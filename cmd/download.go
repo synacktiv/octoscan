@@ -26,6 +26,7 @@ Options:
 	--path <path>  						GitHub file path to download [default: .github/workflows]
 	--output-dir <dir>  					Output dir where to download files [default: octoscan-output]
 	--include-archives  					Also download archived repositories
+	--exclude-forks  						Exclude forks
 
 `
 
@@ -44,20 +45,17 @@ func runDownloader(args docopt.Opts) error {
 	ghOpts := core.GitHubOptions{
 		Path:              path,
 		Org:               org,
+		Repo:              repo,
 		OutputDir:         dir,
 		Token:             token,
 		DefaultBranchOnly: args["--default-branch"].(bool),
 		MaxBranches:       maxBranches,
 		IncludeArchives:   args["--include-archives"].(bool),
+		IncludeForks:      !args["--exclude-forks"].(bool),
 	}
 
 	gh := core.NewGitHub(ghOpts)
-
-	if repo != "" {
-		err = gh.DownloadRepo(repo)
-	} else {
-		err = gh.Download()
-	}
+	err = gh.Download()
 
 	return err
 }
