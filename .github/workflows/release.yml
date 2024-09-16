@@ -1,0 +1,110 @@
+---
+# stolen from https://github.com/laluka/bypass-url-parser/blob/main/.github/workflows/release.yml thx @laluka <3
+name: GitHub release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "The version to tag, without the leading 'v'. If omitted, will initiate a dry run (no uploads)."
+        type: string
+      sha:
+        description: "The full sha of the commit to be released. If omitted, the latest commit on the default branch will be used."
+        default: ""
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+
+      - name: Set local tag for version
+        if: ${{ inputs.tag }}
+        run: |
+          # Set to Github Actor
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git config user.name "${{ github.actor }} (GitHub Actions)"
+          git tag -m "v${{ inputs.tag }}" "v${{ inputs.tag }}"
+
+      - name: Install golang
+        uses: actions/setup-go@v5
+
+      - name: "Build"
+        run: |
+          go mod tidy
+          go build
+      - name: "Upload binary"
+        uses: actions/upload-artifact@v4
+        with:
+          name: octoscan
+          path: ./octoscan
+
+  validate-tag:
+    name: Validate tag
+    runs-on: ubuntu-latest
+    # If you don't set an input tag, it's a dry run (no uploads).
+    if: ${{ inputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master # We checkout the master branch to check for the commit
+      - name: Check master branch
+        if: ${{ inputs.sha }}
+        run: |
+          # Fetch the master branch since a shallow checkout is used by default
+          git fetch origin master --unshallow
+          if ! git branch --contains ${{ inputs.sha }} | grep -E '(^|\s)master$'; then
+            echo "The specified sha is not on the master branch" >&2
+            exit 1
+          fi
+
+  tag-release:
+    name: Tag release
+    runs-on: ubuntu-latest
+    needs: build
+    # If you don't set an input tag, it's a dry run (no uploads).
+    if: ${{ inputs.tag }}
+    permissions:
+      # For git tag
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.sha }}
+      - name: git tag
+        run: |
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+          git config user.name "${{ github.actor }} (GitHub Actions)"
+          git tag -m "v${{ inputs.tag }}" "v${{ inputs.tag }}"
+          # If there is duplicate tag, this will fail. The publish to pypi action will have been a noop (due to skip
+          # existing), so we make a non-destructive exit here
+          git push --tags
+
+  publish-release:
+    name: Publish to GitHub
+    runs-on: ubuntu-latest
+    needs: tag-release
+    # If you don't set an input tag, it's a dry run (no uploads).
+    if: ${{ inputs.tag }}
+    permissions:
+      # For GitHub release publishing
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: octoscan
+          path: ./octoscan
+      - name: "Publish to GitHub"
+        uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          files: octoscan/*
+          tag_name: v${{ inputs.tag }}
