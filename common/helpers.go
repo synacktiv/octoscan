@@ -30,6 +30,27 @@ var GitCheckoutBashRexexp = regexp.MustCompile(`(?m)git checkout.*(\$|` + regexp
 var GHCliCheckoutBashRexexp = regexp.MustCompile(`(?m)gh pr checkout.*(\$|` + regexp.QuoteMeta("`") + `)`)
 var GHCliDownloadArtifactsRexexp = regexp.MustCompile(`(?m)gh run download `)
 
+// SyntaxCheckErrors crapy but I can't remove syntax-check errors, it's in the core of actionlint
+var SyntaxCheckErrors = []string{
+	"unexpected key \".+\" for ",
+	"section is missing in workflow",
+	"section should not be empty",
+	"expected \".+\" key for \".+\" section but got",
+	"section must be sequence node but",
+	"is duplicated in workflow. previously defined at",
+	"string should not be empty",
+	"workflow is empty",
+	" is duplicated in element of \".+\" section. previously defined at li",
+	"step must run script with \".+\" section or run action wit",
+	"section is missing in job",
+	"could not parse as.+did not find expected",
+	"is not available with \".+\". it is only available with",
+	"expected scalar node for string value but found sequence node with",
+	"sequence node but mapping node is expected",
+	"please remove this section if it's unnecessary",
+	"is only available for a reusable workflow call with",
+}
+
 var TriggerWithExternalData = []string{
 	"issues", // might need to verify this one
 	"issue_comment",

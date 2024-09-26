@@ -166,7 +166,7 @@ func setScannerArgs(args docopt.Opts) actionlint.LinterOptions {
 	opts.Shellcheck = "shellcheck"
 	// Add default ignore pattern
 	// by default actionlint add error when parsing Workflows files
-	opts.IgnorePatterns = append(opts.IgnorePatterns, "unexpected key \".+\" for ")
+	opts.IgnorePatterns = append(opts.IgnorePatterns, common.SyntaxCheckErrors...)
 
 	if args["--ignore"] != nil {
 		opts.IgnorePatterns = append(opts.IgnorePatterns, args["--ignore"].(string))
