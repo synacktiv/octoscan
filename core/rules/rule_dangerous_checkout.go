@@ -63,7 +63,7 @@ func (rule *RuleDangerousCheckout) checkCheckoutAction(action *actionlint.ExecAc
 		// basicRegExp := regexp.MustCompile(`github.event.pull_request`)
 		ref := action.Inputs["ref"]
 
-		if ref != nil && !common.LettersRegexp.MatchString(ref.Value.Value) {
+		if ref != nil && !common.StaticRefRegexp.MatchString(ref.Value.Value) {
 			rule.Errorf(
 				ref.Value.Pos,
 				"Use of 'actions/checkout' with a custom ref.",

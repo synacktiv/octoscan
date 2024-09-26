@@ -18,7 +18,7 @@ const (
 
 // regexp for rules
 
-var LettersRegexp = regexp.MustCompile("^[a-zA-Z]+$")
+var StaticRefRegexp = regexp.MustCompile("^[a-zA-Z-]+$")
 var GitHubOutputPwshRegexp = regexp.MustCompile(`(?m)(?i:env):GITHUB_OUTPUT`)
 var GitHubOutputBashRegexp = regexp.MustCompile(`(?m)>>\s*"*\${*GITHUB_OUTPUT`)
 var GitHubEnvPwshRegexp = regexp.MustCompile(`(?m)(?i:env):GITHUB_ENV`)
