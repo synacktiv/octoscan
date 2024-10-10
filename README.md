@@ -102,7 +102,7 @@ Args:
 	--filter-run					Search for expression injection only in run shell scripts.
 	--ignore <pattern>				Regular expression matching to error messages you want to ignore.
 	--disable-rules <rules>				Disable specific rules. Split on ","
-	--enable-rules <rules>				Enable specific rules, this with disable all other rules. Split on ","
+	--enable-rules <rules>				Enable specific rules, this will disable all other rules. Split on ","
 	--debug-rules					Enable debug rules.
 	--config-file <config>				Config file.
 
