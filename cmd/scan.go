@@ -25,8 +25,8 @@ Options:
 	-v, --version
 	-d, --debug
 	--verbose
-	--json                    			JSON output
-	--oneline                    			Use one line per one error. Useful for reading error messages from programs
+	--format <format>  				Output format, json, sarif or custom template to format error messages in Go template syntax. See https://github.com/rhysd/actionlint/tree/main/docs/usage.md#format
+	--oneline 					Use one line per one error. Useful for reading error messages from programs
 
 Args:
 	<target>					Target File or directory to scan
@@ -81,6 +81,25 @@ func runScanner(args docopt.Opts) int {
 		errs, err = octoLinter.LintRepositoryRecurse(file)
 	} else {
 		errs, err = l.LintFile(file, nil)
+	}
+
+	if err != nil {
+		common.Log.Error(err)
+
+		return common.ExitStatusFailure
+	}
+
+	if args["--format"] != nil {
+		switch format := args["--format"].(string); format {
+		case "json":
+			opts.Format = "{{json .}}"
+		case "sarif":
+			opts.Format = string(common.SarifTemplate)
+		default:
+			opts.Format = format
+		}
+		// Now we can use our own formatter on all the errors.
+		err = core.DisplayErrors(os.Stdout, opts.Format, errs)
 	}
 
 	if err != nil {
@@ -157,8 +176,13 @@ func setScannerArgs(args docopt.Opts) actionlint.LinterOptions {
 		opts.Oneline = true
 	}
 
-	if v, _ := args.Bool("--json"); v {
-		opts.Format = "{{json .}}"
+	/*
+		This is a hacky trick to disable the formatter of actionlint otherwise it will use
+		a new formatter for each repo and this not what we want. We want to use the same
+		formatter for all the repo. It's far from being perfect but I don't know how to do it.
+	*/
+	if args["--format"] != nil {
+		opts.Format = "{{\"\"}}"
 	}
 
 	setCoreParameter(args)

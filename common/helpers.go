@@ -1,6 +1,7 @@
 package common
 
 import (
+	_ "embed"
 	"net/http"
 	"os"
 	"regexp"
@@ -49,6 +50,16 @@ var SyntaxCheckErrors = []string{
 	"sequence node but mapping node is expected",
 	"please remove this section if it's unnecessary",
 	"is only available for a reusable workflow call with",
+	"previously defined at line",
+	"could not parse as YAML",
+	"it must be one of",
+	"event must be one of",
+	"this step is for running shell command since it contains",
+	"job is scalar node but mapping node is expected",
+	"section should have",
+	"but found plain text node",
+	"but found mapping node with",
+	"section must be mapping",
 }
 
 var TriggerWithExternalData = []string{
@@ -96,6 +107,9 @@ var AllTriggers = []string{
 	"workflow_dispatch",
 	"workflow_run",
 }
+
+//go:embed assets/sarif.template
+var SarifTemplate []byte
 
 func IsDirectory(path string) bool {
 	fileInfo, err := os.Stat(path)

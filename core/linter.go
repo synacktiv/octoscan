@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -130,7 +131,7 @@ func offlineRules() []actionlint.Rule {
 		}
 
 		if RulesSwitch["debug-artefacts"] {
-			res = append(res, rules.NewRuleRuleDebugArtefacts())
+			res = append(res, rules.NewRuleRuleDebugArtefacts(FilterTriggers))
 		}
 
 		if RulesSwitch["debug-js-exec"] {
@@ -173,4 +174,31 @@ func (l *OctoLinter) LintRepositoryRecurse(dir string) ([]*actionlint.Error, err
 		return nil, fmt.Errorf("could not read files in %q: %w", "./", err)
 	}
 	return lintErrors, nil
+}
+
+/*
+Everything is stolen from here: https://github.com/rhysd/actionlint/blob/main/docs/usage.md#format
+Again thanks @rhysd for the great work.
+*/
+func DisplayErrors(writer io.Writer, format string, errs []*actionlint.Error) error {
+	formatter, err := actionlint.NewErrorFormatter(format)
+	rules := &[]actionlint.Rule{}
+	availableRules := OnRulesCreated(*rules)
+
+	for _, rule := range availableRules {
+		formatter.RegisterRule(rule)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	temp := make([]*actionlint.ErrorTemplateFields, 0, len(errs))
+
+	for _, octoscanErr := range errs {
+		src, _ := os.ReadFile(octoscanErr.Filepath)
+		temp = append(temp, octoscanErr.GetTemplateFields(src))
+	}
+
+	return formatter.Print(writer, temp)
 }
