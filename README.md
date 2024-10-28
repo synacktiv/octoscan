@@ -22,6 +22,7 @@
 - [Usage](#usage)
 	- [download remote workflows](#download-remote-workflows)
 	- [analyze](#analyze)
+	- [GitHub action](#github-action)
 - [Rules](#rules)
 	- [dangerous-checkout](#dangerous-checkout)
 	- [dangerous-action](#dangerous-action)
@@ -45,6 +46,13 @@
 $ go mod tidy
 $ go build
 ```
+
+Or with docker:
+
+```
+$ docker pull ghcr.io/synacktiv/octoscan:latest
+```
+
 ## Usage
 
 ### download remote workflows
@@ -121,6 +129,14 @@ Args:
 Examples:
 	$ octoscan scan ci.yml --disable-rules shellcheck,local-action --filter-triggers external
 ```
+
+### GitHub action
+
+This tool can also be used directly as a GitHub action to scan your repository on `push`/`pull_request` events. For more information please check [this repository](https://github.com/synacktiv/action-octoscan).
+
+<div align="center">
+  <img src="https://github.com/synacktiv/action-octoscan/blob/main/img/action-octoscan.png"/>
+</div>
 
 ## Rules
 
