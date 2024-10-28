@@ -1,31 +1,43 @@
-# Octoscan
+<div align="center">
+	:octocat:
+</div>
+<h1 align="center">
+  octoscan
+</h1>
 
-Octoscan is a static vulnerability scanner for GitHub action workflows.
+<p align="center">
+   Octoscan is a static vulnerability scanner for GitHub action workflows.
+</p>
+
+<div align="center">
+  <img src="img/dependabot.png"/>
+</div>
+
+<br />
 
 ## Table of Contents
 
-- [Octoscan](#octoscan)
-	- [Table of Contents](#table-of-contents)
-	- [Installation](#installation)
-	- [Usage](#usage)
-		- [download remote workflows](#download-remote-workflows)
-		- [analyze](#analyze)
-	- [Rules](#rules)
-		- [dangerous-checkout](#dangerous-checkout)
-		- [dangerous-action](#dangerous-action)
-		- [dangerous-write](#dangerous-write)
-		- [expression-injection](#expression-injection)
-		- [runner-label](#runner-label)
-		- [repo-jacking](#repo-jacking)
-		- [unsecure-commands](#unsecure-commands)
-		- [bot-check](#bot-check)
-		- [known-vulnerability](#known-vulnerability)
-		- [credentials](#credentials)
-		- [shellcheck](#shellcheck)
-		- [local-action](#local-action)
-		- [oidc-action](#oidc-action)
-	- [Credits](#credits)
-	- [Resources](#resources)
+- [Table of Contents](#table-of-contents)
+- [Installation](#installation)
+- [Usage](#usage)
+	- [download remote workflows](#download-remote-workflows)
+	- [analyze](#analyze)
+- [Rules](#rules)
+	- [dangerous-checkout](#dangerous-checkout)
+	- [dangerous-action](#dangerous-action)
+	- [dangerous-write](#dangerous-write)
+	- [expression-injection](#expression-injection)
+	- [runner-label](#runner-label)
+	- [repo-jacking](#repo-jacking)
+	- [unsecure-commands](#unsecure-commands)
+	- [bot-check](#bot-check)
+	- [known-vulnerability](#known-vulnerability)
+	- [credentials](#credentials)
+	- [shellcheck](#shellcheck)
+	- [local-action](#local-action)
+	- [oidc-action](#oidc-action)
+- [Credits](#credits)
+- [Resources](#resources)
 
 ## Installation
 
@@ -93,8 +105,8 @@ Options:
 	-v, --version
 	-d, --debug
 	--verbose
-	--json                    			JSON output
-	--oneline                    			Use one line per one error. Useful for reading error messages from programs
+	--format <format>  				Output format, json, sarif or custom template to format error messages in Go template syntax. See https://github.com/rhysd/actionlint/tree/main/docs/usage.md#format
+	--oneline 					Use one line per one error. Useful for reading error messages from programs
 
 Args:
 	<target>					Target File or directory to scan
