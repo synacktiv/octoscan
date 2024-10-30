@@ -33,6 +33,7 @@
 	- [unsecure-commands](#unsecure-commands)
 	- [bot-check](#bot-check)
 	- [known-vulnerability](#known-vulnerability)
+	- [dangerous-artefact](#dangerous-artefact)
 	- [credentials](#credentials)
 	- [shellcheck](#shellcheck)
 	- [local-action](#local-action)
@@ -144,6 +145,10 @@ The complete list of rules can be found with this command:
 ```
 $ octoscan scan --list-rules  
 2024/08/07 16:50:48 [INFO] Available rules
+- shellcheck
+	Checks for shell script sources in "run:" using shellcheck
+- credentials
+	Checks for credentials in "services:" configuration
 - dangerous-action
 	Check for dangerous actions.
 - dangerous-checkout
@@ -154,8 +159,6 @@ $ octoscan scan --list-rules
 	Check for dangerous write operation on $GITHUB_OUTPUT or $GITHUB_ENV.
 - local-action
 	Check for local actions.
-- oidc-action
-	Check for OIDC actions.
 - runner-label
 	Checks for GitHub-hosted and preset self-hosted runner labels in "runs-on:"
 - unsecure-commands
@@ -164,12 +167,16 @@ $ octoscan scan --list-rules
 	Check for known vulnerabilities.
 - bot-check
 	Check for if statements that are based on a bot identity.
+- dangerous-artefact
+	Check for workflow that upload artefacts containing sensitive files.
 - debug-external-trigger
 	Check for workflow that can be externally triggered.
 - debug-artefacts
 	Check for workflow that upload artefacts.
 - debug-js-exec
 	Check for workflow that execute system commands in JS scripts.
+- debug-oidc-action
+	Check for OIDC actions.
 - repo-jacking
 	Verify that external actions are pointing to a valid GitHub user or organization.
 ```
@@ -339,6 +346,10 @@ You can find all the exploitation details here: https://www.synacktiv.com/public
 
 Search for known vulnerable actions based on [osv.dev](https://osv.dev/list?ecosystem=GitHub+Actions&q=).
 
+### dangerous-artefact
+
+Check for workflow that upload artefacts containing sensitive files like `.git/config`. This rule is based on [this article](https://unit42.paloaltonetworks.com/github-repo-artifacts-leak-tokens/).
+
 ### credentials
 
 Checks for credentials in `services:` configuration. This rules comes from [actionlint](https://github.com/rhysd/actionlint).
@@ -357,6 +368,7 @@ Raise an alert if a local GitHub action is used. For now the tool can't parse lo
 
 Detect OIDC actions. Workflows using OIDC actions can be a good target to access some cloud providers. There is no vulnerability associated with this rule but taking a closer look at this action can be interesting if there is a vulnerability that is not found by this tool.
 
+💡 This is now a debug rule, you need to add `--debug-rules` to search for this one.
 ## Credits
 
 This tool could not have been developed without [actionlint](https://github.com/rhysd/actionlint). Many thanks to [@rhysd](https://github.com/rhysd).
@@ -370,3 +382,4 @@ This tool could not have been developed without [actionlint](https://github.com/
 - [GitHub Actions exploitation: Dependabot](https://www.synacktiv.com/publications/github-actions-exploitation-dependabot)
 - https://0xn3va.gitbook.io/cheat-sheets/ci-cd/github/actions
 - https://cloud.hacktricks.xyz/pentesting-ci-cd/github-security
+- https://unit42.paloaltonetworks.com/github-repo-artifacts-leak-tokens
