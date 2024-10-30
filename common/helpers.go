@@ -55,11 +55,15 @@ var SyntaxCheckErrors = []string{
 	"it must be one of",
 	"event must be one of",
 	"this step is for running shell command since it contains",
-	"job is scalar node but mapping node is expected",
+	"scalar node but mapping node is expected",
 	"section should have",
 	"but found plain text node",
 	"but found mapping node with",
 	"section must be mapping",
+	"should not be listed in",
+	"must be greater than",
+	"this step is for running action since it contains",
+	"is required to run action",
 }
 
 var TriggerWithExternalData = []string{
