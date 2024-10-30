@@ -45,10 +45,16 @@ func (rule *RuleDebugArtefacts) VisitStep(n *actionlint.Step) error {
 	spec := e.Uses.Value
 
 	if strings.HasPrefix(spec, "actions/upload-artifact") {
-		rule.Errorf(
-			e.Inputs["path"].Value.Pos,
-			"Use of action 'actions/upload-artifact'",
-		)
+
+		path := e.Inputs["path"]
+		if path != nil {
+			// weird linter error
+			//nolint:typecheck
+			rule.Errorf(
+				e.Inputs["path"].Value.Pos,
+				"Use of action 'actions/upload-artifact'",
+			)
+		}
 	}
 
 	return nil

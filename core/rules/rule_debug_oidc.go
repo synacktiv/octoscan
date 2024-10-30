@@ -17,7 +17,7 @@ var OIDCActions = []string{
 func NewRuleOIDCAction() *RuleOIDCAction {
 	return &RuleOIDCAction{
 		RuleBase: actionlint.NewRuleBase(
-			"oidc-action",
+			"debug-oidc-action",
 			"Check for OIDC actions.",
 		),
 	}

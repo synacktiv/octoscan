@@ -29,7 +29,6 @@ var (
 		"expression-injection":   true,
 		"dangerous-write":        true,
 		"local-action":           true,
-		"oidc-action":            true,
 		"repo-jacking":           true,
 		"shellcheck":             true,
 		"credentials":            true,
@@ -41,6 +40,7 @@ var (
 		"debug-external-trigger": true,
 		"debug-artefacts":        true,
 		"debug-js-exec":          true,
+		"debug-oidc-action":      true,
 	}
 )
 
@@ -115,10 +115,6 @@ func offlineRules() []actionlint.Rule {
 		res = append(res, rules.NewRuleLocalAction(FilterTriggers))
 	}
 
-	if RulesSwitch["oidc-action"] {
-		res = append(res, rules.NewRuleOIDCAction())
-	}
-
 	if RulesSwitch["runner-label"] {
 		res = append(res, rules.NewRuleRunnerLabel())
 	}
@@ -152,6 +148,10 @@ func offlineRules() []actionlint.Rule {
 
 		if RulesSwitch["debug-js-exec"] {
 			res = append(res, rules.NewRuleDebugJSExec(FilterTriggers))
+		}
+
+		if RulesSwitch["debug-oidc-action"] {
+			res = append(res, rules.NewRuleOIDCAction())
 		}
 	}
 
