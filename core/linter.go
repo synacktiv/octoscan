@@ -34,6 +34,7 @@ var (
 		"shellcheck":             true,
 		"credentials":            true,
 		"runner-label":           true,
+		"dangerous-artefact":     true,
 		"unsecure-commands":      true,
 		"known-vulnerability":    true,
 		"bot-check":              true,
@@ -132,6 +133,12 @@ func offlineRules() []actionlint.Rule {
 
 	if RulesSwitch["bot-check"] {
 		res = append(res, rules.NewRuleBotCheck(FilterTriggers))
+	}
+
+	if RulesSwitch["dangerous-artefact"] {
+		// run on every trigger even if specified by the user because this vulnerability
+		// can be triggered in every workflow
+		res = append(res, rules.NewRuleRuleDangerousArtefact(common.AllTriggers))
 	}
 
 	if DebugRules {
