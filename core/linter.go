@@ -82,7 +82,7 @@ func filterUnWantedRules(rules []actionlint.Rule) []actionlint.Rule {
 		if no rules are passed this function is called from octosan
 		so we can add dummy rules for the --list-rule option and for the sarif format.
 	*/
-	if len(res) == 0 {
+	if len(rules) == 0 {
 		res = append(res, &actionlint.RuleCredentials{RuleBase: actionlint.NewRuleBase("shellcheck", "Checks for shell script sources in \"run:\" using shellcheck")})
 		res = append(res, &actionlint.RuleShellcheck{RuleBase: actionlint.NewRuleBase("credentials", "Checks for credentials in \"services:\" configuration")})
 	}
