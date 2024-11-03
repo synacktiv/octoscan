@@ -118,6 +118,10 @@ func (rule *RuleExpressionInjection) VisitStep(n *actionlint.Step) error {
 
 			rule.checkString(e.Entrypoint, "")
 			rule.checkString(e.Args, "")
+		} else {
+			if strings.Index(e.Uses.Value, "actions/github-script") == 0 {
+				rule.checkString(e.Inputs["script"].Value, "jobs.<job_id>.steps.with")
+			}
 		}
 
 	}
