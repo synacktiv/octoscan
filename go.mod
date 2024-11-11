@@ -16,7 +16,7 @@ require (
 	github.com/google/osv-scanner v1.9.1
 	github.com/hashicorp/go-version v1.7.0
 	github.com/rhysd/actionlint v1.7.3
-	golang.org/x/oauth2 v0.23.0
+	golang.org/x/oauth2 v0.24.0
 )
 
 require (
