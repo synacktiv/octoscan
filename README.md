@@ -222,7 +222,7 @@ GitHub will create default environment variables that can be used inside every s
 #### examples
 
 - [Swagger-editor](https://www.synacktiv.com/publications/github-actions-exploitation-repo-jacking-and-environment-manipulation)
-- [dgraph-io/badger](https://github.com/dgraph-io/badger/blob/6acc8e801739f6702b8d95f462b8d450b9a0455b/.github/workflows/ci-badger-tests-coverage.yml#L13)
+- [dgraph-io/badger](https://github.com/dgraph-io/badger/blob/6acc8e801739f6702b8d95f462b8d450b9a0455b/.github/workflows/ci-badger-tests-coverage.yml#L17-L18)
 - [Firebase](https://www.legitsecurity.com/blog/github-privilege-escalation-vulnerability-0)
 - [microsoft/vscode-github-triage-actions](https://bugs.chromium.org/p/project-zero/issues/detail?id=2070)
 
