@@ -1,7 +1,6 @@
 module github.com/synacktiv/octoscan
 
 go 1.22.7
-
 toolchain go1.23.2
 
 // well I have a PR that is not merged: https://github.com/rhysd/actionlint/pull/332
@@ -13,7 +12,7 @@ require (
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/fatih/color v1.18.0
 	github.com/google/go-github v17.0.0+incompatible
-	github.com/google/osv-scanner v1.9.1
+	github.com/google/osv-scanner v1.9.2
 	github.com/hashicorp/go-version v1.7.0
 	github.com/rhysd/actionlint v1.7.3
 	golang.org/x/oauth2 v0.23.0
@@ -27,7 +26,7 @@ require (
 	github.com/package-url/packageurl-go v0.1.3 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/robfig/cron/v3 v3.0.1 // indirect
-	golang.org/x/sync v0.8.0 // indirect
-	golang.org/x/sys v0.26.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
+	golang.org/x/sys v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
