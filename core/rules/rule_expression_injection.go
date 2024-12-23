@@ -93,6 +93,18 @@ func (rule *RuleExpressionInjection) VisitWorkflowPre(n *actionlint.Workflow) er
 	return nil
 }
 
+// VisitJobPre is callback when visiting Job node before visiting its children.
+func (rule *RuleExpressionInjection) VisitJobPre(n *actionlint.Job) error {
+
+	if n.Services != nil {
+		for _, s := range n.Services.Value {
+			rule.checkContainer(s.Container, "jobs.<job_id>.services", "<service_id>")
+		}
+	}
+
+	return nil
+}
+
 // VisitStep is callback when visiting Step node.
 func (rule *RuleExpressionInjection) VisitStep(n *actionlint.Step) error {
 
@@ -293,4 +305,17 @@ func cleanLogMessages(errs []*actionlint.Error) {
 		msg := strings.Split(e.Message, ". ")
 		e.Message = "Expression injection, " + msg[0] + "."
 	}
+}
+
+func (rule *RuleExpressionInjection) checkContainer(c *actionlint.Container, workflowKey, childWorkflowKeyPrefix string) {
+	if c == nil {
+		return
+	}
+	childWorkflowKey := workflowKey
+	if childWorkflowKeyPrefix != "" {
+		childWorkflowKey += "." + childWorkflowKeyPrefix
+	}
+	rule.checkString(c.Image, workflowKey)
+	//rule.checkEnv(c.Env, workflowKey+".env.<env_id>") // e.g. jobs.<job_id>.container.env.<env_id>
+	rule.checkString(c.Options, workflowKey)
 }
