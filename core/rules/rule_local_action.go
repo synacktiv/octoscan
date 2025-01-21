@@ -31,6 +31,26 @@ func (rule *RuleLocalAction) VisitWorkflowPre(n *actionlint.Workflow) error {
 	return nil
 }
 
+func (rule *RuleLocalAction) VisitJobPre(j *actionlint.Job) error {
+	if rule.skip {
+		return nil
+	}
+
+	if j.WorkflowCall == nil {
+		return nil
+	} else {
+		if strings.HasPrefix(j.WorkflowCall.Uses.Value, "./") {
+			rule.RuleBase.Errorf(
+				j.WorkflowCall.Uses.Pos,
+				"Use of local workflow %q",
+				j.WorkflowCall.Uses.Value,
+			)
+		}
+	}
+
+	return nil
+}
+
 // VisitStep is callback when visiting Step node.
 func (rule *RuleLocalAction) VisitStep(n *actionlint.Step) error {
 	if rule.skip {
