@@ -57,6 +57,7 @@ const (
 	compatMacOS150XL
 	compatWindows2019
 	compatWindows2022
+	compatWindows2025
 )
 
 // https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
@@ -95,7 +96,9 @@ var defaultRunnerOSCompats = map[string]runnerOSCompat{
 	"ubuntu-latest-8-cores":  compatUbuntu2204,
 	"ubuntu-latest-16-cores": compatUbuntu2204,
 	"ubuntu-24.04":           compatUbuntu2404,
+	"ubuntu-24.04-arm":       compatUbuntu2404,
 	"ubuntu-22.04":           compatUbuntu2204,
+	"ubuntu-22.04-arm":       compatUbuntu2204,
 	"ubuntu-20.04":           compatUbuntu2004,
 	"macos-latest-xl":        compatMacOS140XL,
 	"macos-latest-xlarge":    compatMacOS140XL,
@@ -118,6 +121,7 @@ var defaultRunnerOSCompats = map[string]runnerOSCompat{
 	"macos-12":               compatMacOS120,
 	"windows-latest":         compatWindows2022,
 	"windows-latest-8-cores": compatWindows2022,
+	"windows-2025":           compatWindows2025,
 	"windows-2022":           compatWindows2022,
 	"windows-2019":           compatWindows2019,
 	"linux":                  compatUbuntu2404 | compatUbuntu2204 | compatUbuntu2004, // Note: "linux" does not always indicate Ubuntu. It might be Fedora or Arch or ...
