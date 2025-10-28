@@ -1,7 +1,6 @@
 module github.com/synacktiv/octoscan
 
-go 1.22.7
-toolchain go1.23.2
+go 1.24.0
 
 // well I have a PR that is not merged: https://github.com/rhysd/actionlint/pull/332
 // and I can"t use go install with replace directive: https://github.com/golang/go/issues/44840
@@ -15,7 +14,7 @@ require (
 	github.com/google/osv-scanner v1.9.2
 	github.com/hashicorp/go-version v1.7.0
 	github.com/rhysd/actionlint v1.7.3
-	golang.org/x/oauth2 v0.23.0
+	golang.org/x/oauth2 v0.32.0
 )
 
 require (
