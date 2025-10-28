@@ -26,7 +26,7 @@ Options:
 	-d, --debug
 	--verbose
 	--format <format>  				Output format, json, sarif or custom template to format error messages in Go template syntax. See https://github.com/rhysd/actionlint/tree/main/docs/usage.md#format
-	--oneline 					Use one line per one error. Useful for reading error messages from programs
+	--oneline  					Use one line per one error. Useful for reading error messages from programs
 
 Args:
 	<target>					Target File or directory to scan
