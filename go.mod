@@ -14,7 +14,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/google/go-github v17.0.0+incompatible
 	github.com/google/osv-scanner v1.9.2
-	github.com/hashicorp/go-version v1.7.0
+	github.com/hashicorp/go-version v1.8.0
 	github.com/rhysd/actionlint v1.7.3
 	golang.org/x/oauth2 v0.27.0
 )
