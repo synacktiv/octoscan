@@ -40,8 +40,13 @@ jobs:
       - name: "Build"
         run: |
           go mod tidy
-          go build
-          GOOS=windows go build
+          if [ -n "${{ inputs.tag }}" ]; then
+            go build -ldflags "-X main.version=v${{ inputs.tag }}"
+            GOOS=windows go build -ldflags "-X main.version=v${{ inputs.tag }}"
+          else
+            go build
+            GOOS=windows go build
+          fi
       - name: "Upload binary"
         uses: actions/upload-artifact@v4
         with:
