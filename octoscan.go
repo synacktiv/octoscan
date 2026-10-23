@@ -22,13 +22,14 @@ Options:
 Commands:
 	dl			Download workflows files from GitHub
 	scan			Scan workflows
+	version			Print the version
 
 
 `
 
 func main() {
 	parser := &docopt.Parser{OptionsFirst: true}
-	args, _ := parser.ParseArgs(usage, nil, "octoscan version 0.1")
+	args, _ := parser.ParseArgs(usage, nil, "octoscan version "+versionString())
 
 	cmd, _ := args.String("<command>")
 	cmdArgs := args["<args>"].([]string)
@@ -45,6 +46,10 @@ func runCommand(command string, args []string) int {
 		return cmd.Scan(argv)
 	case "dl":
 		return cmd.Download(argv)
+	case "version":
+		fmt.Println("octoscan version " + versionString())
+
+		return common.ExitStatusSuccessNoProblem
 	default:
 		common.Log.Info(fmt.Sprintf("%s is not a octoscan command. See 'octoscan --help'", command))
 
