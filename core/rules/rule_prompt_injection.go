@@ -175,7 +175,7 @@ func (rule *RulePromptInjection) checkAgent(e *actionlint.ExecAction, agent stri
 	switch agent {
 	case "anthropics/claude-code-action", "anthropics/claude-code-base-action":
 		if v := value("allowed_non_write_users"); v != nil && strings.Contains(v.Value, "*") {
-			rule.Errorf(v.Pos, "%s can be triggered by any user with \"allowed_non_write_users: *\": anyone who can open an issue or a comment gets a prompt injection in a job that has your secrets and your token.", agent)
+			rule.Errorf(v.Pos, "%s can be triggered by anyone (\"allowed_non_write_users: *\"): any issue or comment is a prompt injection with access to secrets.", agent)
 		}
 
 		if v := value("claude_args"); v != nil {
@@ -192,10 +192,10 @@ func (rule *RulePromptInjection) checkAgent(e *actionlint.ExecAction, agent stri
 		if v := value("allow-users"); v != nil && strings.Contains(v.Value, "*") {
 			note := ""
 			if sandbox := value("sandbox"); sandbox != nil && strings.EqualFold(strings.TrimSpace(sandbox.Value), "read-only") {
-				note = " The \"read-only\" sandbox limits what the agent can do, but it still reads content written by anyone."
+				note = ` The "read-only" sandbox limits the impact.`
 			}
 
-			rule.Errorf(v.Pos, "%s can be triggered by any user with \"allow-users: *\": anyone who can open an issue or a comment gets a prompt injection in a job that has your secrets and your token.%s", agent, note)
+			rule.Errorf(v.Pos, "%s can be triggered by anyone (\"allow-users: *\"): any issue or comment is a prompt injection with access to secrets.%s", agent, note)
 		}
 
 		if v := value("safety-strategy"); v != nil && strings.EqualFold(strings.TrimSpace(v.Value), "unsafe") {
