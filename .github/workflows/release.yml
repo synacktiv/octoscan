@@ -1,120 +1,197 @@
 ---
-# stolen from https://github.com/laluka/bypass-url-parser/blob/main/.github/workflows/release.yml thx @laluka <3
+# Builds, tests and publishes a draft GitHub release. Without a tag it is a dry run: everything is built, nothing is published.
+# Initially stolen from https://github.com/laluka/bypass-url-parser/blob/main/.github/workflows/release.yml thx @laluka <3
 name: GitHub release
 
 on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "The version to tag, without the leading 'v'. If omitted, will initiate a dry run (no uploads)."
+        description: "The version to tag, without the leading 'v' (ex: 1.2.3). If omitted, will initiate a dry run (no uploads)."
         type: string
       sha:
         description: "The full sha of the commit to be released. If omitted, the latest commit on the default branch will be used."
         default: ""
         type: string
 
+# one release at a time, and never cancel one that is half published
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: release
+  cancel-in-progress: false
+
+permissions: {}
+
+# the inputs are only used through the environment, never expanded in a script
+env:
+  TAG: ${{ inputs.tag }}
+  INPUT_SHA: ${{ inputs.sha }}
 
 jobs:
-  build:
-    name: Build
+  # Validates the inputs and resolves the commit once, all the next jobs build exactly this commit.
+  prepare:
+    name: Prepare
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+      version: ${{ steps.resolve.outputs.version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.sha }}
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0 # the history and the tags are needed to validate the sha and the tag
+          persist-credentials: false
 
-      - name: Set local tag for version
-        if: ${{ inputs.tag }}
+      - name: Validate inputs and resolve the commit
+        id: resolve
+        env:
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
         run: |
-          # Set to Github Actor
-          git config user.email "${{ github.actor }}@users.noreply.github.com"
-          git config user.name "${{ github.actor }} (GitHub Actions)"
-          git tag -m "v${{ inputs.tag }}" "v${{ inputs.tag }}"
-
-      - name: Install golang
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-
-      - name: "Build"
-        run: |
-          go mod tidy
-          if [ -n "${{ inputs.tag }}" ]; then
-            go build -ldflags "-X main.version=v${{ inputs.tag }}"
-            GOOS=windows go build -ldflags "-X main.version=v${{ inputs.tag }}"
-          else
-            go build
-            GOOS=windows go build
-          fi
-      - name: "Upload binary"
-        uses: actions/upload-artifact@v4
-        with:
-          name: octoscan
-          path: |
-            ./octoscan
-            ./octoscan.exe
-
-  validate-tag:
-    name: Validate tag
-    runs-on: ubuntu-latest
-    # If you don't set an input tag, it's a dry run (no uploads).
-    if: ${{ inputs.tag }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: master # We checkout the master branch to check for the commit
-      - name: Check master branch
-        if: ${{ inputs.sha }}
-        run: |
-          # Fetch the master branch since a shallow checkout is used by default
-          git fetch origin master --unshallow
-          if ! git branch --contains ${{ inputs.sha }} | grep -E '(^|\s)master$'; then
-            echo "The specified sha is not on the master branch" >&2
+          if [ "$GITHUB_REF" != "refs/heads/$DEFAULT_BRANCH" ]; then
+            echo "Run this workflow from the $DEFAULT_BRANCH branch." >&2
             exit 1
           fi
 
-  tag-release:
-    name: Tag release
-    runs-on: ubuntu-latest
-    needs: build
-    # If you don't set an input tag, it's a dry run (no uploads).
-    if: ${{ inputs.tag }}
-    permissions:
-      # For git tag
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.sha }}
-      - name: git tag
-        run: |
-          git config user.email "${{ github.actor }}@users.noreply.github.com"
-          git config user.name "${{ github.actor }} (GitHub Actions)"
-          git tag -m "v${{ inputs.tag }}" "v${{ inputs.tag }}"
-          # If there is duplicate tag, this will fail. The publish to pypi action will have been a noop (due to skip
-          # existing), so we make a non-destructive exit here
-          git push --tags
+          if [ -n "$TAG" ] && ! [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "Invalid tag '$TAG', expected something like 1.2.3 (without the leading 'v')." >&2
+            exit 1
+          fi
 
-  publish-release:
-    name: Publish to GitHub
+          if [ -n "$INPUT_SHA" ] && ! [[ "$INPUT_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid sha '$INPUT_SHA', expected the full 40 characters sha." >&2
+            exit 1
+          fi
+
+          sha="${INPUT_SHA:-$(git rev-parse HEAD)}"
+
+          if ! git merge-base --is-ancestor "$sha" HEAD; then
+            echo "The sha $sha is not on the $DEFAULT_BRANCH branch." >&2
+            exit 1
+          fi
+
+          if [ -n "$TAG" ] && git rev-parse --quiet --verify "refs/tags/v$TAG" >/dev/null; then
+            echo "The tag v$TAG already exists." >&2
+            exit 1
+          fi
+
+          version=""
+          [ -n "$TAG" ] && version="v$TAG"
+
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Releasing ${version:-nothing (dry run)} at $sha"
+
+  test:
+    name: Test
+    needs: prepare
     runs-on: ubuntu-latest
-    needs: tag-release
-    # If you don't set an input tag, it's a dry run (no uploads).
-    if: ${{ inputs.tag }}
     permissions:
-      # For GitHub release publishing
-      contents: write
+      contents: read
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          name: octoscan
-          path: ./octoscan
-      - name: "Publish to GitHub"
-        uses: softprops/action-gh-release@v2
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          draft: true
-          files: octoscan/*
-          tag_name: v${{ inputs.tag }}
+          go-version-file: go.mod
+
+      - name: Vet and test
+        run: |
+          go mod tidy -diff
+          go vet ./...
+          go test ./...
+
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    needs: [prepare, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        # "octoscan" and "octoscan.exe" are the names used by the Dockerfile and the previous releases
+        include:
+          - { goos: linux, goarch: amd64, asset: octoscan }
+          - { goos: linux, goarch: arm64, asset: octoscan-linux-arm64 }
+          - { goos: darwin, goarch: amd64, asset: octoscan-darwin-amd64 }
+          - { goos: darwin, goarch: arm64, asset: octoscan-darwin-arm64 }
+          - { goos: windows, goarch: amd64, asset: octoscan.exe }
+          - { goos: windows, goarch: arm64, asset: octoscan-windows-arm64.exe }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          persist-credentials: false
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          ASSET: ${{ matrix.asset }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          CGO_ENABLED=0 go build -trimpath -ldflags "-s -w -X main.version=${VERSION:-dev}" -o "dist/$ASSET" .
+
+      # the binary of the runner is the only one that can be run
+      - name: Check the version of the binary
+        if: ${{ matrix.goos == 'linux' && matrix.goarch == 'amd64' }}
+        env:
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          ./dist/octoscan version
+          if [ -n "$VERSION" ]; then
+            test "$(./dist/octoscan version)" = "octoscan version $VERSION"
+          fi
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: bin-${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+
+  # If you don't set an input tag, it's a dry run (no uploads).
+  release:
+    name: Publish to GitHub
+    needs: [prepare, build]
+    if: ${{ inputs.tag != '' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # the release
+      id-token: write # the provenance attestation
+      attestations: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: bin-*
+          merge-multiple: true
+          path: dist
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum octoscan* > SHA256SUMS
+
+      - name: Attest the provenance of the binaries
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/octoscan*
+
+      # The tag is created on the commit that was tested and built when the draft is published.
+      - name: Create the draft release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SHA: ${{ needs.prepare.outputs.sha }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          gh release create "$VERSION" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$SHA" \
+            --title "$VERSION" \
+            --generate-notes \
+            --draft

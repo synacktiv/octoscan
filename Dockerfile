@@ -17,11 +17,21 @@ RUN set -x; \
   rm -rf "shellcheck-${SHELLCHEK_VERSION}"; \
   ls -laF /bin/shellcheck
 
+# "latest" or a tag like v1.2.3, the docker workflow passes the tag of the release it is built for
+ARG OCTOSCAN_VERSION=latest
+
 RUN set -e ;\
-    OCTOSCAN_ASSET_URL=$(curl -sS https://api.github.com/repos/synacktiv/octoscan/releases/latest | jq -r '.assets[] | select(.name == "octoscan") | .browser_download_url') ;\
-    echo $OCTOSCAN_ASSET_URL ;\
-    curl -sSL "$OCTOSCAN_ASSET_URL" -o ./octoscan ;\
-    chmod +x ./octoscan ;\
-    mv ./octoscan /usr/local/bin/ ;
+    if [ "$OCTOSCAN_VERSION" = latest ]; then path=latest; else path="tags/$OCTOSCAN_VERSION"; fi ;\
+    release=$(curl -sSf "https://api.github.com/repos/synacktiv/octoscan/releases/$path") ;\
+    asset_url() { echo "$release" | jq -r --arg name "$1" '.assets[] | select(.name == $name) | .browser_download_url'; } ;\
+    curl -sSfL "$(asset_url octoscan)" -o octoscan ;\
+    sums_url=$(asset_url SHA256SUMS) ;\
+    if [ -n "$sums_url" ]; then \
+      curl -sSfL "$sums_url" | grep ' octoscan$' | sha256sum -c - ; \
+    else \
+      echo "WARNING: this release has no SHA256SUMS, the binary is not verified" >&2 ; \
+    fi ;\
+    chmod +x octoscan ;\
+    mv octoscan /usr/local/bin/
 
 ENTRYPOINT ["octoscan"]
