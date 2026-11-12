@@ -1,7 +1,6 @@
 package rules
 
 import (
-	"bufio"
 	"regexp"
 	"slices"
 	"strings"
@@ -9,53 +8,17 @@ import (
 	"github.com/rhysd/actionlint"
 )
 
-func searchInScript(script string, re *regexp.Regexp) []*actionlint.Pos {
-	return searchInScriptExcept(script, re, nil)
-}
+// reportInScript reports an error at the start of every line of str that matches re (and does not match except, which
+// may be nil), once per line.
+func reportInScript(rule *actionlint.RuleBase, str *actionlint.String, re, except *regexp.Regexp, msg string) {
+	offset := 0 // of the line in the value
 
-// searchInScriptExcept is searchInScript ignoring the lines matching except (may be nil).
-func searchInScriptExcept(script string, re, except *regexp.Regexp) []*actionlint.Pos {
-	line := 0
-	res := []*actionlint.Pos{}
-
-	// multi-line scripts start on the line after "run: |"
-	if strings.Contains(script, "\n") {
-		line++
-	}
-
-	scanner := bufio.NewScanner(strings.NewReader(script))
-	for scanner.Scan() {
-		text := scanner.Text()
-
-		col := re.FindStringIndex(text)
-		if col != nil && (except == nil || !except.MatchString(text)) {
-			res = append(res, &actionlint.Pos{
-				Line: line,
-				Col:  col[1],
-			})
+	for _, line := range strings.Split(str.Value, "\n") {
+		if loc := re.FindStringIndex(line); loc != nil && (except == nil || !except.MatchString(line)) {
+			rule.Error(posInString(str.Value, str.Pos, str.Quoted, offset+loc[0]), msg)
 		}
-		line++
-	}
 
-	return res
-}
-
-func exprError(rule *actionlint.RuleBase, err *actionlint.ExprError, lineBase, colBase int) {
-	pos := exprLineColToPos(err.Line, err.Column, lineBase, colBase)
-	rule.Error(pos, err.Message)
-}
-
-// TODO improve multilines scripts
-// run: |
-//
-//	ENV=""
-//
-// with the previous example the script line start before the pos of the Run action
-func exprLineColToPos(line, col, lineBase, colBase int) *actionlint.Pos {
-	// Line and column in ExprError are 1-based
-	return &actionlint.Pos{
-		Line: line + lineBase,
-		Col:  col + colBase,
+		offset += len(line) + 1
 	}
 }
 
@@ -93,33 +56,84 @@ func checkForSpecificAction(rule *actionlint.RuleBase, exec *actionlint.ExecActi
 	}
 }
 
-// expressionSegments returns the content of every "${{ }}" of s. When bare is true and s has none,
+// exprSegment is the content of a "${{ }}" and where it starts in the string.
+type exprSegment struct {
+	text   string
+	offset int
+}
+
+// expressionSegmentsAt returns the content of every "${{ }}" of s. When bare is true and s has none,
 // the whole of s is returned: it is an "if:" condition, which does not need the "${{ }}".
-func expressionSegments(s string, bare bool) []string {
+func expressionSegmentsAt(s string, bare bool) []exprSegment {
 	if !strings.Contains(s, "${{") {
 		if bare {
-			return []string{s}
+			return []exprSegment{{s, 0}}
 		}
 
 		return nil
 	}
 
-	var res []string
+	var res []exprSegment
+
+	base := 0
 
 	for {
-		_, rest, found := strings.Cut(s, "${{")
-		if !found {
+		i := strings.Index(s, "${{")
+		if i < 0 {
 			return res
 		}
 
-		inner, after, closed := strings.Cut(rest, "}}")
-		res = append(res, inner)
+		rest := s[i+3:]
+		start := base + i + 3
 
-		if !closed {
-			return res
+		end := strings.Index(rest, "}}")
+		if end < 0 {
+			return append(res, exprSegment{rest, start})
 		}
 
-		s = after
+		res = append(res, exprSegment{rest[:end], start})
+		base = start + end + 2
+		s = rest[end+2:]
+	}
+}
+
+// expressionSegments is expressionSegmentsAt without the offsets.
+func expressionSegments(s string, bare bool) []string {
+	var res []string
+
+	for _, seg := range expressionSegmentsAt(s, bare) {
+		res = append(res, seg.text)
+	}
+
+	return res
+}
+
+// posInString returns the position of a byte offset of a string value, ready to be reported.
+//
+// The AST does not have the indentation of a block scalar ("run: |"): the content starts on the line after the key and
+// its columns are not in the AST. The column of the lines of such a string is reported as the negative of its
+// column counted from the first non-blank character of the line, and core.FixPositions replaces it with the real
+// column with the source.
+func posInString(value string, pos *actionlint.Pos, quoted bool, offset int) *actionlint.Pos {
+	offset = min(offset, len(value))
+
+	if !strings.Contains(value, "\n") {
+		col := pos.Col + offset
+		if quoted {
+			col++ // when the string is quoted like 'foo' or "foo", column should be incremented
+		}
+
+		return &actionlint.Pos{Line: pos.Line, Col: col}
+	}
+
+	before := value[:offset]
+	lineStart := strings.LastIndex(before, "\n") + 1
+	line := value[lineStart:]
+	blanks := len(line) - len(strings.TrimLeft(line, " \t"))
+
+	return &actionlint.Pos{
+		Line: pos.Line + 1 + strings.Count(before, "\n"),
+		Col:  -max(offset-lineStart-blanks+1, 1),
 	}
 }
 

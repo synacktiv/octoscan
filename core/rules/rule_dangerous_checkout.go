@@ -124,37 +124,17 @@ func (rule *RuleDangerousCheckout) checkManualCheckout(action *actionlint.ExecRu
 }
 
 func (rule *RuleDangerousCheckout) checkGitManualCheckout(action *actionlint.ExecRun) {
-	// the name of a created branch is not a ref to check out, blank it keeping the columns
-	script := common.GitNewBranchRegexp.ReplaceAllStringFunc(action.Run.Value, func(m string) string {
+	// the name of a created branch is not a ref to check out, blank it keeping the offsets
+	script := *action.Run
+	script.Value = common.GitNewBranchRegexp.ReplaceAllStringFunc(script.Value, func(m string) string {
 		keep := len(common.GitNewBranchRegexp.FindStringSubmatch(m)[1])
 
 		return m[:keep] + strings.Repeat("_", len(m)-keep)
 	})
-	posArray := searchInScript(script, common.GitCheckoutBashRexexp)
 
-	for _, pos := range posArray {
-		err := &actionlint.ExprError{
-			Message: "Use of \"git checkout\" in a bash script with a potentially dangerous reference.",
-			Offset:  0,
-			Line:    pos.Line,
-			Column:  pos.Col,
-		}
-		err.Column -= len("git checkout")
-		exprError(&rule.RuleBase, err, action.Run.Pos.Line, action.Run.Pos.Col)
-	}
+	reportInScript(&rule.RuleBase, &script, common.GitCheckoutBashRexexp, nil, "Use of \"git checkout\" in a bash script with a potentially dangerous reference.")
 }
 
 func (rule *RuleDangerousCheckout) checkGHCliManualCheckout(action *actionlint.ExecRun) {
-	posArray := searchInScript(action.Run.Value, common.GHCliCheckoutBashRexexp)
-
-	for _, pos := range posArray {
-		err := &actionlint.ExprError{
-			Message: "Use of \"gh pr checkout\" in a bash script with a potentially dangerous reference.",
-			Offset:  0,
-			Line:    pos.Line,
-			Column:  pos.Col,
-		}
-		err.Column -= len("gh pr checkout")
-		exprError(&rule.RuleBase, err, action.Run.Pos.Line, action.Run.Pos.Col)
-	}
+	reportInScript(&rule.RuleBase, action.Run, common.GHCliCheckoutBashRexexp, nil, "Use of \"gh pr checkout\" in a bash script with a potentially dangerous reference.")
 }

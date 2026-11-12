@@ -81,21 +81,25 @@ func (rule *RuleDangerousArtefact) checkUpload(e *actionlint.ExecAction) {
 		return
 	}
 
+	offset := 0 // of the line in the value
+
 	for _, line := range strings.Split(path.Value.Value, "\n") {
 		p := strings.TrimSpace(line)
+		pos := posInString(path.Value.Value, path.Value.Pos, path.Value.Quoted, offset+strings.Index(line, p))
+		offset += len(line) + 1
 
 		switch {
 		case p == "" || strings.HasPrefix(p, "!"):
 		case includesGitDir(p):
 			rule.Errorf(
-				path.Value.Pos,
+				pos,
 				"Use of action 'actions/upload-artifact' with a path including the .git directory %q%s",
 				p,
 				rule.credentialsNote(),
 			)
 		case slices.Contains(sensitivePaths, p):
 			rule.Errorf(
-				path.Value.Pos,
+				pos,
 				"Use of action 'actions/upload-artifact' with a sensitive path %q%s",
 				p,
 				rule.credentialsNote(),

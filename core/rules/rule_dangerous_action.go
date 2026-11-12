@@ -141,44 +141,18 @@ func (rule *RuleDangerousAction) checkDownloadActions(exec *actionlint.ExecActio
 // 	rule.jobsCache[n.ID.Value] = externalActionsCache
 // }
 
+var downloadArtifactRegexp = regexp.MustCompile(`(?m)downloadArtifact`)
+
 func (rule *RuleDangerousAction) checkDownloadInGitHubScript(exec *actionlint.ExecAction) {
 	spec := exec.Uses.Value
 
 	if strings.HasPrefix(spec, "actions/github-script") {
-		basicRegExp := regexp.MustCompile(`(?m)downloadArtifact`)
-		script := exec.Inputs["script"]
-
-		if script != nil {
-			posArray := searchInScript(script.Value.Value, basicRegExp)
-
-			for _, pos := range posArray {
-				err := &actionlint.ExprError{
-					Message: "Use of \"downloadArtifact\" in \"actions/github-script\" action.",
-					Offset:  0,
-					Line:    pos.Line,
-					Column:  pos.Col,
-				}
-				err.Column -= len("downloadArtifact")
-				exprError(&rule.RuleBase, err, script.Value.Pos.Line, script.Value.Pos.Col)
-			}
+		if script := exec.Inputs["script"]; script != nil {
+			reportInScript(&rule.RuleBase, script.Value, downloadArtifactRegexp, nil, "Use of \"downloadArtifact\" in \"actions/github-script\" action.")
 		}
 	}
 }
 
 func (rule *RuleDangerousAction) checkDownloadArtifacts(exec *actionlint.ExecRun) {
-	script := exec.Run.Value
-	p := exec.Run.Pos
-
-	posArray := searchInScript(script, common.GHCliDownloadArtifactsRexexp)
-
-	for _, pos := range posArray {
-		err := &actionlint.ExprError{
-			Message: "Use of \"gh run download\" in a script.",
-			Offset:  0,
-			Line:    pos.Line,
-			Column:  pos.Col,
-		}
-		err.Column -= len("gh run download ")
-		exprError(&rule.RuleBase, err, p.Line, p.Col)
-	}
+	reportInScript(&rule.RuleBase, exec.Run, common.GHCliDownloadArtifactsRexexp, nil, "Use of \"gh run download\" in a script.")
 }

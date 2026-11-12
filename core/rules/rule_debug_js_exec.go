@@ -48,26 +48,14 @@ func (rule *RuleDebugJSExec) VisitStep(n *actionlint.Step) error {
 	return nil
 }
 
+var jsExecRegexp = regexp.MustCompile(`(?m)exec.exec\(`)
+
 func (rule *RuleDebugJSExec) checkJSExec(exec *actionlint.ExecAction) {
 	spec := exec.Uses.Value
 
 	if strings.HasPrefix(spec, "actions/github-script") {
-		basicRegExp := regexp.MustCompile(`(?m)exec.exec\(`)
-		script := exec.Inputs["script"]
-
-		if script != nil {
-			posArray := searchInScript(script.Value.Value, basicRegExp)
-
-			for _, pos := range posArray {
-				err := &actionlint.ExprError{
-					Message: "Use of \"exec.exec()\" in \"actions/github-script\" action.",
-					Offset:  0,
-					Line:    pos.Line,
-					Column:  pos.Col,
-				}
-				err.Column -= len(".exec(")
-				exprError(&rule.RuleBase, err, script.Value.Pos.Line, script.Value.Pos.Col)
-			}
+		if script := exec.Inputs["script"]; script != nil {
+			reportInScript(&rule.RuleBase, script.Value, jsExecRegexp, nil, "Use of \"exec.exec()\" in \"actions/github-script\" action.")
 		}
 	}
 }

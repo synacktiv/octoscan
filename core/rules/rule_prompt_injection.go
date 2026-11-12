@@ -112,12 +112,18 @@ func aiAgentName(spec string) string {
 	return ""
 }
 
-// untrustedPaths returns the untrusted inputs ("github.event.issue.title") used in the "${{ }}" of s.
-func (rule *RulePromptInjection) untrustedPaths(s string) []string {
-	var res []string
+// untrustedRef is an untrusted input ("github.event.issue.title") and where it is in a string.
+type untrustedRef struct {
+	path   string
+	offset int
+}
 
-	for _, src := range expressionSegments(s, false) {
-		expr := parseExpr(src)
+// untrustedPaths returns the untrusted inputs used in the "${{ }}" of s.
+func (rule *RulePromptInjection) untrustedPaths(s string) []untrustedRef {
+	var res []untrustedRef
+
+	for _, seg := range expressionSegmentsAt(s, false) {
+		expr := parseExpr(seg.text)
 		if expr == nil {
 			continue
 		}
@@ -130,7 +136,8 @@ func (rule *RulePromptInjection) untrustedPaths(s string) []string {
 		for _, err := range checker.Errs() {
 			// the message starts with the quoted path
 			if quoted, _, found := strings.Cut(strings.TrimPrefix(err.Message, `"`), `"`); found {
-				res = append(res, quoted)
+				// the path is written as is, except with the index syntax: github['event']
+				res = append(res, untrustedRef{quoted, seg.offset + max(strings.Index(seg.text, quoted), 0)})
 			}
 		}
 	}
@@ -145,7 +152,7 @@ func (rule *RulePromptInjection) untrustedVars(env *actionlint.Env) map[string]s
 
 	forEnvVars(env, func(name string, value *actionlint.String) {
 		if paths := rule.untrustedPaths(value.Value); len(paths) > 0 {
-			res[name] = paths[0]
+			res[name] = paths[0].path
 		}
 	})
 
@@ -172,12 +179,13 @@ func (rule *RulePromptInjection) checkAgent(e *actionlint.ExecAction, agent stri
 		}
 
 		if v := value("claude_args"); v != nil {
-			if strings.Contains(v.Value, "--dangerously-skip-permissions") {
-				rule.Errorf(v.Pos, "%s runs with \"--dangerously-skip-permissions\": the agent runs any tool without asking.", agent)
+			if i := strings.Index(v.Value, "--dangerously-skip-permissions"); i >= 0 {
+				rule.Errorf(posInString(v.Value, v.Pos, v.Quoted, i), "%s runs with \"--dangerously-skip-permissions\": the agent runs any tool without asking.", agent)
 			}
 
-			if bareBashToolRegexp.MatchString(v.Value) {
-				rule.Errorf(v.Pos, "%s is allowed to run any shell command (the \"Bash\" tool without a restriction): a prompt injection is a remote code execution. Allow only the commands needed, like \"Bash(git status:*)\".", agent)
+			if loc := bareBashToolRegexp.FindStringIndex(v.Value); loc != nil {
+				// the match includes the character before "Bash"
+				rule.Errorf(posInString(v.Value, v.Pos, v.Quoted, loc[0]+strings.Index(v.Value[loc[0]:loc[1]], "Bash")), "%s is allowed to run any shell command (the \"Bash\" tool without a restriction): a prompt injection is a remote code execution. Allow only the commands needed, like \"Bash(git status:*)\".", agent)
 			}
 		}
 	case "openai/codex-action":
@@ -199,8 +207,8 @@ func (rule *RulePromptInjection) checkAgent(e *actionlint.ExecAction, agent stri
 		}
 	case "google-github-actions/run-gemini-cli", "google-gemini/gemini-cli-action":
 		for _, input := range e.Inputs {
-			if strings.Contains(input.Value.Value, "run_shell_command") {
-				rule.Errorf(input.Value.Pos, "%s is given a shell tool (\"run_shell_command\"): a prompt injection can run commands, even a restricted list like \"gh issue edit\" is enough to leak the tokens.", agent)
+			if i := strings.Index(input.Value.Value, "run_shell_command"); i >= 0 {
+				rule.Errorf(posInString(input.Value.Value, input.Value.Pos, input.Value.Quoted, i), "%s is given a shell tool (\"run_shell_command\"): a prompt injection can run commands, even a restricted list like \"gh issue edit\" is enough to leak the tokens.", agent)
 			}
 		}
 	case "actions/ai-inference":
@@ -216,14 +224,16 @@ func (rule *RulePromptInjection) checkInputUntrusted(input *actionlint.Input, ag
 		return
 	}
 
-	for _, path := range rule.untrustedPaths(input.Value.Value) {
-		rule.Errorf(input.Value.Pos, "Prompt injection: the untrusted input %q is given to %s in %q.", path, agent, input.Name.Value)
+	value := input.Value
+
+	for _, ref := range rule.untrustedPaths(value.Value) {
+		rule.Errorf(posInString(value.Value, value.Pos, value.Quoted, ref.offset), "Prompt injection: the untrusted input %q is given to %s in %q.", ref.path, agent, input.Name.Value)
 	}
 
 	for name, path := range scope {
-		if regexp.MustCompile(`(?:\$\{?|\benv\.)` + regexp.QuoteMeta(name) + `\b`).MatchString(input.Value.Value) {
+		if loc := regexp.MustCompile(`(?:\$\{?|\benv\.)` + regexp.QuoteMeta(name) + `\b`).FindStringIndex(value.Value); loc != nil {
 			rule.Errorf(
-				input.Value.Pos,
+				posInString(value.Value, value.Pos, value.Quoted, loc[0]),
 				"Prompt injection: the variable %q holds the untrusted input %q and is given to %s in %q. A variable protects from a command injection, not from a prompt injection.",
 				name, path, agent, input.Name.Value,
 			)

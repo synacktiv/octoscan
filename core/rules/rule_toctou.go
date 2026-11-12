@@ -94,12 +94,8 @@ func (rule *RuleToctou) checkCheckoutAction(e *actionlint.ExecAction) {
 }
 
 func (rule *RuleToctou) checkScript(e *actionlint.ExecRun) {
-	for _, pos := range searchInScript(e.Run.Value, common.ToctouScriptRegexp) {
-		err := &actionlint.ExprError{
-			Message: "TOCTOU: the head of a PR is checked out in a script of a workflow triggered by \"" + rule.trigger + "\", the PR can change between the approval and the checkout. Check out a commit SHA.",
-			Line:    pos.Line,
-			Column:  pos.Col,
-		}
-		exprError(&rule.RuleBase, err, e.Run.Pos.Line, e.Run.Pos.Col)
-	}
+	reportInScript(
+		&rule.RuleBase, e.Run, common.ToctouScriptRegexp, nil,
+		"TOCTOU: the head of a PR is checked out in a script of a workflow triggered by \""+rule.trigger+"\", the PR can change between the approval and the checkout. Check out a commit SHA.",
+	)
 }

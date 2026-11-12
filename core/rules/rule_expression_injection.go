@@ -173,18 +173,9 @@ func (rule *RuleExpressionInjection) checkEnv(env *actionlint.Env, workflowKey s
 }
 
 func (rule *RuleExpressionInjection) checkExprsIn(s string, pos *actionlint.Pos, quoted, checkUntrusted bool, workflowKey string) {
-	// TODO: Line number is not correct when the string contains newlines.
+	value := s
+	offset := 0 // of s in value
 
-	line, col := pos.Line, pos.Col
-	if quoted {
-		col++ // when the string is quoted like 'foo' or "foo", column should be incremented
-	}
-
-	if len(strings.Split(s, "\n")) != 1 {
-		line++
-	}
-
-	offset := 0
 	for {
 		idx := strings.Index(s, "${{")
 		if idx == -1 {
@@ -194,9 +185,10 @@ func (rule *RuleExpressionInjection) checkExprsIn(s string, pos *actionlint.Pos,
 		start := idx + 3 // 3 means removing "${{"
 		s = s[start:]
 		offset += start
-		col := col + offset
 
-		offsetAfter, ok := rule.checkSemantics(s, line, col, checkUntrusted, workflowKey)
+		p := posInString(value, pos, quoted, offset)
+
+		offsetAfter, ok := rule.checkSemantics(s, p.Line, p.Col, checkUntrusted, workflowKey)
 		if !ok {
 			return
 		}
@@ -236,10 +228,14 @@ func (rule *RuleExpressionInjection) checkExprNode(expr actionlint.ExprNode, lin
 
 func convertExprLineColToPos(line, col, lineBase, colBase int) *actionlint.Pos {
 	// Line and column in ExprError are 1-based
-	return &actionlint.Pos{
-		Line: line - 1 + lineBase,
-		Col:  col - 1 + colBase,
+	pos := &actionlint.Pos{Line: line - 1 + lineBase, Col: col - 1 + colBase}
+
+	// the column of the lines of a block scalar is the negative of a column relative to the content, see posInString
+	if colBase < 0 {
+		pos.Col = colBase - (col - 1)
 	}
+
+	return pos
 }
 
 func (rule *RuleExpressionInjection) checkExpressionInjection(expr actionlint.ExprNode) []*actionlint.ExprError {

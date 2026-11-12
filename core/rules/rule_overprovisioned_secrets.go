@@ -80,13 +80,13 @@ func (rule *RuleOverprovisionedSecrets) check(str *actionlint.String) {
 		return
 	}
 
-	for _, expr := range expressionSegments(str.Value, false) {
-		if secretsDumpRegexp.MatchString(expr) {
-			rule.Error(str.Pos, "The whole \"secrets\" context is dumped with \"toJSON(secrets)\", every secret of the repository is exposed to this step.")
+	for _, seg := range expressionSegmentsAt(str.Value, false) {
+		if loc := secretsDumpRegexp.FindStringIndex(seg.text); loc != nil {
+			rule.Error(posInString(str.Value, str.Pos, str.Quoted, seg.offset+loc[0]), "The whole \"secrets\" context is dumped with \"toJSON(secrets)\", every secret of the repository is exposed to this step.")
 		}
 
-		if secretsDynamicRegexp.MatchString(expr) {
-			rule.Error(str.Pos, "A secret is accessed dynamically with \"secrets[...]\", any secret might be selected. Reference the needed secrets by name.")
+		if loc := secretsDynamicRegexp.FindStringIndex(seg.text); loc != nil {
+			rule.Error(posInString(str.Value, str.Pos, str.Quoted, seg.offset+loc[0]), "A secret is accessed dynamically with \"secrets[...]\", any secret might be selected. Reference the needed secrets by name.")
 		}
 	}
 }

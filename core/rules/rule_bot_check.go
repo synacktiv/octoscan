@@ -51,17 +51,6 @@ func (rule *RuleBotCheck) VisitStep(n *actionlint.Step) error {
 
 func (rule *RuleBotCheck) checkBotActor(ifStr *actionlint.String) {
 	if ifStr != nil {
-		posArray := searchInScript(ifStr.Value, common.BotActor)
-
-		for _, pos := range posArray {
-			err := &actionlint.ExprError{
-				Message: "If statement based on the github.actor variable and a bot identity.",
-				Offset:  0,
-				Line:    pos.Line,
-				Column:  pos.Col,
-			}
-			err.Column -= len("github.actor")
-			exprError(&rule.RuleBase, err, ifStr.Pos.Line, ifStr.Pos.Col)
-		}
+		reportInScript(&rule.RuleBase, ifStr, common.BotActor, nil, "If statement based on the github.actor variable and a bot identity.")
 	}
 }

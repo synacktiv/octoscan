@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -89,7 +90,11 @@ func runScanner(args docopt.Opts) int {
 		return common.ExitStatusFailure
 	}
 
-	if args["--format"] != nil {
+	core.FixPositions(errs)
+
+	if args["--format"] == nil {
+		printErrors(os.Stdout, errs, opts.Oneline)
+	} else {
 		switch format := args["--format"].(string); format {
 		case "json":
 			opts.Format = "{{json .}}"
@@ -113,6 +118,18 @@ func runScanner(args docopt.Opts) int {
 	}
 
 	return common.ExitStatusSuccessNoProblem
+}
+
+// printErrors prints the errors like actionlint does.
+func printErrors(w io.Writer, errs []*actionlint.Error, oneline bool) {
+	for _, e := range errs {
+		var src []byte
+		if !oneline {
+			src, _ = os.ReadFile(e.Filepath)
+		}
+
+		e.PrettyPrint(w, src)
+	}
 }
 
 func listRules() int {
@@ -181,9 +198,8 @@ func setScannerArgs(args docopt.Opts) actionlint.LinterOptions {
 		a new formatter for each repo and this not what we want. We want to use the same
 		formatter for all the repo. It's far from being perfect but I don't know how to do it.
 	*/
-	if args["--format"] != nil {
-		opts.Format = "{{\"\"}}"
-	}
+	// octoscan prints the errors itself: their positions are fixed with the source first (see core.FixPositions)
+	opts.Format = "{{\"\"}}"
 
 	setCoreParameter(args)
 

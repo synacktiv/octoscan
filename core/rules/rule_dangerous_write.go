@@ -1,6 +1,8 @@
 package rules
 
 import (
+	"regexp"
+
 	"github.com/synacktiv/octoscan/common"
 
 	"github.com/rhysd/actionlint"
@@ -43,92 +45,22 @@ func (rule *RuleDangerousWrite) VisitStep(n *actionlint.Step) error {
 		return nil
 	}
 
-	rule.checkWrite(e.Run.Value, e.Run.Pos)
+	rule.checkWrite(e.Run)
 
 	return nil
 }
 
-func (rule *RuleDangerousWrite) checkWrite(script string, p *actionlint.Pos) {
+func (rule *RuleDangerousWrite) checkWrite(script *actionlint.String) {
 	// handle by rule_dangerous_expression.go with needsOutputData and stepsOutputData I think
-	rule.checkWriteToGitHubOutput(script, p)
-	rule.checkWriteToGitHubEnv(script, p)
-}
-
-func (rule *RuleDangerousWrite) checkWriteToGitHubOutput(script string, p *actionlint.Pos) {
-	rule.checkWriteToGitHubOutputPwsh(script, p)
-	rule.checkWriteToGitHubOutputBash(script, p)
-}
-
-func (rule *RuleDangerousWrite) checkWriteToGitHubEnv(script string, p *actionlint.Pos) {
-	rule.checkWriteToGitHubEnvPwsh(script, p)
-	rule.checkWriteToGitHubEnvBash(script, p)
-}
-
-func (rule *RuleDangerousWrite) checkWriteToGitHubOutputPwsh(script string, p *actionlint.Pos) {
-	posArray := searchInScript(script, common.GitHubOutputPwshRegexp)
-
-	for _, pos := range posArray {
-		err := &actionlint.ExprError{
-			Message: "Write to \"$GITHUB_OUTPUT\" in a powershell script. It might be a false positive, The regexp must be improved",
-			Offset:  0,
-			Line:    pos.Line,
-			Column:  pos.Col,
-		}
-		err.Column -= len("GITHUB_OUTPUT")
-		rule.exprError(err, p.Line, p.Col)
-
+	for _, c := range []struct {
+		re, except *regexp.Regexp
+		msg        string
+	}{
+		{common.GitHubOutputPwshRegexp, nil, "Write to \"$GITHUB_OUTPUT\" in a powershell script. It might be a false positive, The regexp must be improved"},
+		{common.GitHubOutputBashRegexp, common.LiteralEchoRegexp, "Write to \"$GITHUB_OUTPUT\" in a bash script."},
+		{common.GitHubEnvPwshRegexp, nil, "Write to \"$GITHUB_ENV\" in a powershell script. It might be a false positive, The regexp must be improved"},
+		{common.GitHubEnvBashRexexp, common.LiteralEchoRegexp, "Write to \"$GITHUB_ENV\" in a bash script."},
+	} {
+		reportInScript(&rule.RuleBase, script, c.re, c.except, c.msg)
 	}
-}
-
-func (rule *RuleDangerousWrite) checkWriteToGitHubOutputBash(script string, p *actionlint.Pos) {
-	posArray := searchInScriptExcept(script, common.GitHubOutputBashRegexp, common.LiteralEchoRegexp)
-
-	for _, pos := range posArray {
-		err := &actionlint.ExprError{
-			Message: "Write to \"$GITHUB_OUTPUT\" in a bash script.",
-			Offset:  0,
-			Line:    pos.Line,
-			Column:  pos.Col,
-		}
-		err.Column -= len("GITHUB_OUTPUT")
-		rule.exprError(err, p.Line, p.Col)
-
-	}
-}
-
-func (rule *RuleDangerousWrite) checkWriteToGitHubEnvPwsh(script string, p *actionlint.Pos) {
-	posArray := searchInScript(script, common.GitHubEnvPwshRegexp)
-
-	for _, pos := range posArray {
-		err := &actionlint.ExprError{
-			Message: "Write to \"$GITHUB_ENV\" in a powershell script. It might be a false positive, The regexp must be improved",
-			Offset:  0,
-			Line:    pos.Line,
-			Column:  pos.Col,
-		}
-		err.Column -= len("GITHUB_ENV")
-		rule.exprError(err, p.Line, p.Col)
-
-	}
-}
-
-func (rule *RuleDangerousWrite) checkWriteToGitHubEnvBash(script string, p *actionlint.Pos) {
-	posArray := searchInScriptExcept(script, common.GitHubEnvBashRexexp, common.LiteralEchoRegexp)
-
-	for _, pos := range posArray {
-		err := &actionlint.ExprError{
-			Message: "Write to \"$GITHUB_ENV\" in a bash script.",
-			Offset:  0,
-			Line:    pos.Line,
-			Column:  pos.Col,
-		}
-		err.Column -= len("GITHUB_ENV")
-		rule.exprError(err, p.Line, p.Col)
-
-	}
-}
-
-func (rule *RuleDangerousWrite) exprError(err *actionlint.ExprError, lineBase, colBase int) {
-	pos := exprLineColToPos(err.Line, err.Column, lineBase, colBase)
-	rule.Error(pos, err.Message)
 }
