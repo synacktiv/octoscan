@@ -1,0 +1,54 @@
+# VULNERABLE EXAMPLE for the "runner-label" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/runner-label.yml
+# expect: runner-label=8
+
+# A label that is not a GitHub-hosted runner is a self-hosted runner (or a typo). Self-hosted runners that run code from
+# a fork or from an issue are persistent machines inside your network: a compromised job stays on them.
+name: Runners
+
+on:
+  pull_request_target:
+  workflow_dispatch:
+    inputs:
+      runner:
+        type: string
+
+jobs:
+  # the generic self-hosted label
+  self-hosted:
+    runs-on: self-hosted
+    steps:
+      - run: make
+
+  # self-hosted with its own labels
+  gpu:
+    runs-on: [self-hosted, linux, x64, gpu]
+    steps:
+      - run: make test-gpu
+
+  # a custom label
+  custom:
+    runs-on: my-org-runners
+    steps:
+      - run: make
+
+  # labels of different images: no machine matches both
+  conflict:
+    runs-on: [ubuntu-26.04, ubuntu-24.04]
+    steps:
+      - run: make
+
+  # the runner is chosen by an input
+  input:
+    runs-on: ${{ inputs.runner }}
+    steps:
+      - run: make
+
+  # a self-hosted runner in a matrix
+  matrix:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, company-mac-runner]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - run: make

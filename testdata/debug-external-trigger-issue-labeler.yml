@@ -1,0 +1,15 @@
+# VULNERABLE EXAMPLE for the "debug-external-trigger" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/debug-external-trigger-issue-labeler.yml --debug-rules --filter-triggers external
+# expect: debug-external-trigger=1
+
+name: Issue Labeler
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo labeling

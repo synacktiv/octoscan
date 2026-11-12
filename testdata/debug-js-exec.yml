@@ -1,0 +1,31 @@
+# VULNERABLE EXAMPLE for the "debug-js-exec" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/debug-js-exec.yml --debug-rules
+# expect: debug-js-exec=3
+
+# A debug rule (--debug-rules) that lists the github-script steps that run system commands with exec.exec(): the
+# arguments are often built from the event.
+name: Scripts
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  script:
+    runs-on: ubuntu-latest
+    steps:
+      # a command
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const exec = require('@actions/exec')
+            await exec.exec('npm', ['ci'])
+
+      # commands built from the comment
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const exec = require('@actions/exec')
+            const command = context.payload.comment.body.split(' ')[1]
+            await exec.exec(command)
+            await exec.exec('git', ['checkout', command])

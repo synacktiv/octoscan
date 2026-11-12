@@ -1,0 +1,67 @@
+# VULNERABLE EXAMPLE for the "dangerous-artefact" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/dangerous-artefact.yml
+# expect: dangerous-artefact=8
+
+# upload-artifact of the workspace publishes everything the job wrote, including .git/config where actions/checkout
+# stores the GITHUB_TOKEN ("artipacked"). The artifacts of a public repository can be downloaded by anybody.
+name: Build
+
+on:
+  pull_request:
+  push:
+
+jobs:
+  # the whole workspace
+  workspace:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: make
+      - uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: .
+
+  # globs and the home directory
+  globs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/upload-artifact@v4
+        with:
+          name: all
+          path: "**"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: home
+          path: ~
+
+  # the .git directory, the git config
+  git:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: git
+          path: .git
+      - uses: actions/upload-artifact@v4
+        with:
+          name: config
+          path: ./.git/config
+
+  # a list of paths with the workspace, a glob and a .git inside
+  list:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: list
+          path: |
+            dist/
+            .
+            **/.git/**
+            .*

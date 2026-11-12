@@ -1,0 +1,37 @@
+# VULNERABLE EXAMPLE for the "debug-oidc-action" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/debug-oidc-action.yml --debug-rules
+# expect: debug-oidc-action=3
+
+# A debug rule (--debug-rules) that lists the actions that use OIDC to get cloud credentials: a workflow that an
+# attacker can influence can ask for a token (check the "sub" claim of the trust policy: branch, environment...).
+name: Cloud
+
+on:
+  push:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  cloud:
+    runs-on: ubuntu-latest
+    steps:
+      # AWS
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/deploy
+          aws-region: eu-west-1
+
+      # Azure
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # AWS again, with another role
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::123456789012:role/admin
+          aws-region: us-east-1

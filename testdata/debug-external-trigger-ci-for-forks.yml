@@ -1,0 +1,16 @@
+# VULNERABLE EXAMPLE for the "debug-external-trigger" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/debug-external-trigger-ci-for-forks.yml --debug-rules --filter-triggers external
+# expect: debug-external-trigger=1
+
+# A debug rule (--debug-rules) that lists the workflows that anybody can trigger. With --filter-triggers external the
+# other rules only look at these workflows. Each of the three files named debug-external-trigger*.yml has one finding.
+name: CI for forks
+
+on:
+  pull_request_target:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo testing

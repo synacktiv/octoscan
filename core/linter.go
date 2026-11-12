@@ -190,9 +190,41 @@ func onlineRules() []actionlint.Rule {
 	return res
 }
 
+// lintWorkflows lints the workflows w of the repository root.
+//
+// actionlint finds the project of a directory in its parents: a folder of workflows that is not a repository (the
+// output of the "dl" command without its marker, the examples of a project...) would be linted as the project that
+// contains it, or fail when there is none. Only the root of a repository is linted as a project.
+func (l *OctoLinter) lintWorkflows(root, w string) ([]*actionlint.Error, error) {
+	if _, err := os.Stat(filepath.Join(root, ".git")); err == nil {
+		return l.LintRepository(w)
+	}
+
+	return l.lintFolder(w)
+}
+
+// lintFolder lints the YAML files of a folder, without the project of actionlint.
+func (l *OctoLinter) lintFolder(folder string) ([]*actionlint.Error, error) {
+	var files []string
+
+	for _, pattern := range []string{"*.yml", "*.yaml"} {
+		matches, err := filepath.Glob(filepath.Join(folder, pattern))
+		if err != nil {
+			return nil, err
+		}
+
+		files = append(files, matches...)
+	}
+
+	return l.LintFiles(files, nil)
+}
+
 // LintRepositoryRecurse search for all GitHub project recursively and run the linter
 func (l *OctoLinter) LintRepositoryRecurse(dir string) ([]*actionlint.Error, error) {
 	var lintErrors []*actionlint.Error
+
+	found := false
+
 	if err := filepath.WalkDir(dir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -200,9 +232,10 @@ func (l *OctoLinter) LintRepositoryRecurse(dir string) ([]*actionlint.Error, err
 
 		w := filepath.Join(path, ".github", "workflows")
 		if s, err := os.Stat(w); err == nil && s.IsDir() {
-			lintErrorsBatch, err := l.LintRepository(w)
+			found = true
+
+			lintErrorsBatch, err := l.lintWorkflows(path, w)
 			if err != nil {
-				// a directory that is not a git repository has no project: do not look like a clean scan
 				common.Log.Error(fmt.Errorf("could not scan %q: %w", w, err))
 			}
 
@@ -215,6 +248,12 @@ func (l *OctoLinter) LintRepositoryRecurse(dir string) ([]*actionlint.Error, err
 	}); err != nil {
 		return nil, fmt.Errorf("could not read files in %q: %w", "./", err)
 	}
+
+	// no repository: the folder is a folder of workflows
+	if !found {
+		return l.lintFolder(dir)
+	}
+
 	return lintErrors, nil
 }
 

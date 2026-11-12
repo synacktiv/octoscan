@@ -1,0 +1,29 @@
+# VULNERABLE EXAMPLE for the "repo-jacking" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/repo-jacking.yml (needs Internet)
+# expect: repo-jacking=4
+
+# The owner of these actions does not exist on GitHub: anybody can register the user or the organization and publish the
+# action. This happens when an account is renamed or deleted (repo-jacking). The owners below do not exist.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      # an action of an owner that does not exist, used twice
+      - uses: octoscan-demo-missing-owner-a1/deploy-action@v1
+      - uses: octoscan-demo-missing-owner-a1/notify@v2
+
+      # an action in a subdirectory
+      - uses: octoscan-demo-missing-owner-b2/actions/setup@main
+
+      # pinned to a commit, a renamed owner does not change anything
+      - uses: octoscan-demo-missing-owner-c3/publish@0123456789abcdef0123456789abcdef01234567
+
+      # not reported: references to this repository and to docker
+      - uses: ./.github/actions/local
+      - uses: docker://alpine:3.20

@@ -1,0 +1,35 @@
+# VULNERABLE EXAMPLE for the "shellcheck" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/shellcheck.yml (needs shellcheck in the PATH)
+# expect: shellcheck=9
+
+# Shell scripts of "run:" checked by shellcheck, through actionlint: a variable that is not quoted is split and expanded
+# by the shell (a file name with spaces or *, an option "--foo" injected). This rule comes from actionlint.
+name: Scripts
+
+on:
+  pull_request:
+
+jobs:
+  scripts:
+    runs-on: ubuntu-latest
+    steps:
+      # SC2086, an unquoted variable
+      - run: rm -rf $BUILD_DIR/*
+        env:
+          BUILD_DIR: build
+
+      # SC2086 and SC2046, unquoted command substitution
+      - run: |
+          echo $GITHUB_REF
+          tar czf backup.tgz $(git ls-files)
+
+      # SC2155, a declaration that hides the exit code of the command
+      - run: |
+          cd "$GITHUB_WORKSPACE/build"
+          export VERSION=$(cat VERSION)
+          make install
+
+      # SC2006 backticks, SC2045 iterating over the output of ls, SC2162 read without -r
+      - run: |
+          for f in `ls`; do echo "$f"; done
+          read line

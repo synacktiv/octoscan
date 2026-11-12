@@ -1,0 +1,53 @@
+# VULNERABLE EXAMPLE for the "unsound-condition" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/unsound-condition.yml
+# expect: unsound-condition=8
+
+# Conditions that look like a guard but do not guard anything (zizmor: unsound-contains, unsound-condition, unsound-ternary).
+name: Release
+
+on:
+  push:
+  pull_request_target:
+
+jobs:
+  # the arguments of contains() are reversed: it is a substring test, a branch named "ain" or "ev" passes
+  deploy:
+    runs-on: ubuntu-latest
+    if: contains('refs/heads/main refs/heads/develop', github.ref)
+    steps:
+      - run: ./deploy.sh
+
+  steps:
+    runs-on: ubuntu-latest
+    steps:
+      # the same with the name of the branch, in an expression
+      - if: ${{ contains('main develop release', github.ref_name) }}
+        run: ./publish.sh
+
+      # a "${{ }}" followed by text is a non-empty string: always true
+      - if: ${{ github.actor == 'octocat' }} && github.ref == 'refs/heads/main'
+        run: ./admin.sh
+
+      # two expressions
+      - if: ${{ github.actor == 'a' }} ${{ github.actor == 'b' }}
+        run: ./admin.sh
+
+      # a block scalar adds a newline after the "${{ }}": always true (use |- or >-)
+      - if: |
+          ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: ./secrets.sh
+        env:
+          TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+
+      # the value of a ternary is falsy: "other" is always the result
+      - run: echo "target=${{ github.ref == 'refs/heads/main' && '' || 'staging' }}"
+        if: github.ref == 'refs/heads/main' && '' || github.ref == 'refs/heads/dev'
+      - if: github.event_name == 'push' && 0 || github.event_name == 'pull_request_target'
+        run: ./admin.sh
+
+  # at the level of the job
+  job:
+    runs-on: ubuntu-latest
+    if: contains('v1 v2 v3', github.event.pull_request.base.ref)
+    steps:
+      - run: ./build.sh

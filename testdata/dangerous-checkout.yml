@@ -1,0 +1,76 @@
+# VULNERABLE EXAMPLE for the "dangerous-checkout" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/dangerous-checkout.yml
+# expect: dangerous-checkout=12
+
+# pull_request_target and workflow_run run in the context of the base repository, with its secrets and a write token.
+# Checking out the code of the pull request and running it (build, tests, scripts) gives that context to the attacker.
+name: CI for forks
+
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+
+jobs:
+  # the commit of the PR, the merge ref of the PR, the branch of the PR
+  checkout-action:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+      - run: npm ci && npm test
+
+  # the fork itself (its default branch is attacker controlled) and the fork with the head of the PR
+  fork:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+
+  # checkout v7 refuses fork PRs in these events: the opt-out and the ref are both reported
+  opt-out:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          allow-unsafe-pr-checkout: true
+
+  # the same checkouts in a script
+  script:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    steps:
+      - run: git checkout ${{ github.event.pull_request.head.sha }}
+      - run: gh pr checkout ${{ github.event.number }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  # workflow_run: the commit of the workflow that was triggered by a PR
+  workflow-run:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.workflow_run.head_repository.full_name }}

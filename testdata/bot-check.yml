@@ -1,0 +1,50 @@
+# VULNERABLE EXAMPLE for the "bot-check" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/bot-check.yml
+# expect: bot-check=8
+
+# Trusting an identity because of its name is weak: any GitHub App gets a "[bot]" name, so an attacker with an App (or a
+# bot they control, or a lookalike name) passes conditions like endsWith(github.actor, '[bot]'). Compare the numeric id
+# of the actor (github.actor_id) or check the permissions of the user instead.
+name: Auto merge
+
+on:
+  pull_request_target:
+
+jobs:
+  # the actor of a job
+  approve:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - run: gh pr review --approve "$PR"
+        env:
+          PR: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      # the author of the PR, the sender, the type of the sender
+      - if: github.event.pull_request.user.login == 'dependabot[bot]'
+        run: gh pr merge --auto "$PR"
+        env:
+          PR: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.AUTOMERGE_TOKEN }}
+      - if: ${{ github.event.sender.login == 'renovate[bot]' }}
+        run: echo renovate
+      - if: github.event.sender.type == 'Bot'
+        run: echo bot
+
+      # the triggering actor, any name that ends with [bot]
+      - if: github.triggering_actor == 'github-actions[bot]'
+        run: echo triggered
+      - if: endsWith(github.actor, '[bot]')
+        run: echo bot name
+
+      # the sides are reversed, a bot in an or
+      - if: ${{ 'dependabot[bot]' == github.actor }}
+        run: echo reversed
+      - if: github.actor == 'octocat' || github.actor == 'dependabot[bot]'
+        run: echo or

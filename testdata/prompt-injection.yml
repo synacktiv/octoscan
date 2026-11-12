@@ -1,0 +1,139 @@
+# VULNERABLE EXAMPLE for the "prompt-injection" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/prompt-injection.yml
+# expect: prompt-injection=21
+
+# AI agents (with tools, a shell, and the secrets of the job) that read what anybody can write in an issue, a comment or a PR:
+# a prompt injection in it is a remote code execution. Based on the research of Aikido (PromptPwnd), Depi (Codex) and
+# Adnan Khan (Clinejection).
+name: AI triage
+
+on:
+  issues:
+    types: [opened, labeled]
+  issue_comment:
+    types: [created]
+  pull_request_target:
+
+jobs:
+  # OpenAI Codex (Depi): anyone can run the agent and the issue is in the prompt
+  codex:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+    steps:
+      - id: codex
+        uses: openai/codex-action@5c3f4ccdb2b8790f73d6b21751ac00e602aa0c02 # v1.7
+        with:
+          openai-api-key: ${{ secrets.CODEX_OPENAI_API_KEY }}
+          allow-users: "*"
+          prompt: |
+            You are an assistant that reviews GitHub issues. Choose the labels.
+
+            Issue number: ${{ github.event.issue.number }}
+
+            Issue title:
+            ${{ github.event.issue.title }}
+
+            Issue body:
+            ${{ github.event.issue.body }}
+
+  # Gemini CLI (Aikido): the issue goes through variables, the agent can run commands and edit the issue
+  gemini:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+    steps:
+      - uses: google-github-actions/run-gemini-cli@v0.1.30
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        with:
+          gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
+          settings: |
+            {
+              "coreTools": [
+                "run_shell_command(echo)",
+                "run_shell_command(gh issue comment)",
+                "run_shell_command(gh issue edit)"
+              ]
+            }
+          prompt: |
+            Review the issue title and body: "${ISSUE_TITLE}" and "${ISSUE_BODY}".
+
+  # Claude Code (Clinejection): anyone can run it with the shell tool, the title is in the prompt
+  claude:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allowed_non_write_users: "*"
+          claude_args: --model claude-opus-4-5 --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch"
+          prompt: |
+            You are a GitHub issue first responder.
+            **Issue:** #${{ github.event.issue.number || inputs.issue_number }}
+            **Title:** ${{ github.event.issue.title || 'See issue details below' }}
+
+  # a comment in the prompt of an agent that skips every permission prompt
+  claude-comment:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issue_comment'
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_args: --dangerously-skip-permissions
+          prompt: |
+            Answer this comment:
+            ${{ github.event.comment.body }}
+
+  # the pull request and the MCP server of GitHub (Aikido): the token is usable through the tools
+  inference:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    permissions:
+      contents: read
+      models: read
+      pull-requests: write
+    steps:
+      - uses: actions/ai-inference@v1
+        with:
+          enable-github-mcp: true
+          prompt: |
+            Review this pull request.
+            Title: ${{ github.event.pull_request.title }}
+            Description: ${{ github.event.pull_request.body }}
+
+  # Codex with no sandbox, and the output of the agent used in a script
+  apply:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'issues'
+    steps:
+      - id: agent
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.CODEX_OPENAI_API_KEY }}
+          allow-users: "*"
+          safety-strategy: unsafe
+          sandbox: danger-full-access
+          prompt: Suggest a label for this issue.
+      - run: gh issue edit "$NUMBER" --add-label '${{ steps.agent.outputs.final-message }}'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NUMBER: ${{ github.event.issue.number }}
+
+  # Claude with the PR in a variable and the Bash tool allowed without a restriction
+  review:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request_target'
+    steps:
+      - uses: anthropics/claude-code-base-action@beta
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          allowed_tools: Bash
+          claude_args: |
+            --allowedTools "Bash,Read"
+          prompt: Review $PR_BODY

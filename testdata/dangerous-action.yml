@@ -1,0 +1,58 @@
+# VULNERABLE EXAMPLE for the "dangerous-action" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/dangerous-action.yml
+# expect: dangerous-action=6
+
+# A workflow_run (or pull_request_target) workflow that downloads the artifacts of a run triggered by a PR runs
+# with data the attacker controls: a poisoned artifact is then used by the privileged workflow (artifact poisoning).
+name: Deploy preview
+
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      # artifacts of another run, from another repository
+      - uses: dawidd6/action-download-artifact@v6
+        with:
+          workflow: build.yml
+          run_id: ${{ github.event.workflow_run.id }}
+      - uses: dawidd6/action-download-artifact@v6
+        with:
+          repo: someone/fork
+          workflow: build.yml
+
+      # the last artifact of a workflow
+      - uses: blablacar/action-download-last-artifact@v1
+        with:
+          name: site
+
+      # the GitHub CLI
+      - run: gh run download ${{ github.event.workflow_run.id }} --name site
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # the REST API in a script
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const artifacts = await github.rest.actions.listWorkflowRunArtifacts({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              run_id: context.payload.workflow_run.id,
+            })
+            const download = await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifacts.data.artifacts[0].id,
+              archive_format: 'zip',
+            })
+            await github.rest.actions.downloadArtifact({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              artifact_id: artifacts.data.artifacts[1].id,
+              archive_format: 'zip',
+            })

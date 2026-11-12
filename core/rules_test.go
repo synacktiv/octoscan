@@ -333,6 +333,8 @@ func TestRuleToctou(t *testing.T) {
 		{"branch name after a label", "on:\n  pull_request_target:\n    types: [labeled]\njobs:\n  j:\n    runs-on: ubuntu-latest\n    steps:\n" + co("${{ github.event.pull_request.head.ref }}"), 1},
 		{"gh pr checkout after a comment", step("issue_comment", "      - run: gh pr checkout ${{ github.event.issue.number }}\n"), 1},
 		{"fetch of the PR head", step("workflow_dispatch", "      - run: git fetch origin pull/$PR/head\n"), 1},
+		{"fetch of the PR head with an expression", step("issue_comment", "      - run: git fetch origin pull/${{ github.event.issue.number }}/head\n"), 1},
+		{"fetch of the PR merge ref with an expression", step("issue_comment", "      - run: git fetch origin pull/${{ inputs.pr }}/merge\n"), 1},
 		{"commit SHA input", step("workflow_dispatch", co("${{ inputs.sha }}")), 0},
 		{"head sha", step("issue_comment", co("${{ github.event.pull_request.head.sha }}")), 0},
 		{"static ref", step("workflow_dispatch", co("main")), 0},
@@ -428,6 +430,8 @@ func TestRulePromptInjection(t *testing.T) {
             **Author:** @${{ github.event.issue.user.login || 'See issue details below' }}
 `), 3}, // the title, allowed_non_write_users and the Bash tool (the login of the author is not untrusted for actionlint)
 		{"claude: skip permissions", agent("issues", "anthropics/claude-code-action@v1", "          claude_args: --dangerously-skip-permissions\n          prompt: triage\n"), 1},
+		{"claude base action: allowed_tools with Bash", agent("issues", "anthropics/claude-code-base-action@beta", "          allowed_tools: Bash,Read\n          prompt: triage\n"), 1},
+		{"claude base action: allowed_tools restricted", agent("issues", "anthropics/claude-code-base-action@beta", "          allowed_tools: Bash(git status:*),Read\n          prompt: triage\n"), 0},
 		{"claude: restricted Bash tool", agent("issues", "anthropics/claude-code-action@v1", "          claude_args: --allowedTools \"Bash(git status:*),Read\"\n          prompt: triage\n"), 0},
 		{"claude: other tool names", agent("issues", "anthropics/claude-code-action@v1", "          claude_args: --allowedTools \"Read,Glob,BashOutput\"\n          prompt: triage\n"), 0},
 		{"claude: number is not untrusted", agent("issues", "anthropics/claude-code-action@v1", "          prompt: triage issue ${{ github.event.issue.number }} of ${{ github.repository }}\n"), 0},

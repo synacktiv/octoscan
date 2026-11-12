@@ -1,0 +1,51 @@
+# VULNERABLE EXAMPLE for the "dangerous-write" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/dangerous-write.yml
+# expect: dangerous-write=7
+
+# A write to GITHUB_ENV / GITHUB_OUTPUT / GITHUB_PATH with a value the attacker controls can inject variables (LD_PRELOAD,
+# NODE_OPTIONS, BASH_ENV...) or outputs in the next steps. A literal value (echo "a=b") is not reported.
+name: Comment commands
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      # a newline in the title adds a second variable
+      - run: echo "TITLE=${{ github.event.issue.title }}" >> "$GITHUB_ENV"
+
+      # a variable written to the outputs
+      - id: ref
+        env:
+          BODY: ${{ github.event.comment.body }}
+        run: echo "body=$BODY" >> "$GITHUB_OUTPUT"
+
+      # the content of a file the attacker can write, a heredoc with a delimiter the attacker can close
+      - run: cat result.txt >> $GITHUB_ENV
+      - env:
+          BODY: ${{ github.event.comment.body }}
+        run: |
+          echo "BODY<<EOF" >> "$GITHUB_ENV"
+          echo "$BODY" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
+
+  windows:
+    runs-on: windows-latest
+    steps:
+      # PowerShell, GITHUB_ENV and GITHUB_OUTPUT
+      - shell: pwsh
+        env:
+          TITLE: ${{ github.event.issue.title }}
+        run: |
+          echo "TITLE=$env:TITLE" >> $env:GITHUB_ENV
+      - shell: pwsh
+        run: Write-Output "result=$(Get-Content result.txt)" >> $env:GITHUB_OUTPUT
+
+  other:
+    runs-on: ubuntu-latest
+    steps:
+      # unquoted target with ${GITHUB_ENV}
+      - run: echo "VERSION=$(cat VERSION)" >> ${GITHUB_ENV}

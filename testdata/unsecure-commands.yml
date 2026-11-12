@@ -1,0 +1,31 @@
+# VULNERABLE EXAMPLE for the "unsecure-commands" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/unsecure-commands.yml
+# expect: unsecure-commands=3
+
+# ACTIONS_ALLOW_UNSECURE_COMMANDS brings back set-env and add-path, disabled because any text printed in a log
+# (a comment, a file name...) that starts with ::set-env sets an environment variable.
+name: Legacy
+
+on:
+  pull_request:
+
+# for the whole workflow
+env:
+  ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # for a job
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: "true"
+    steps:
+      - run: echo "::set-env name=A::b"
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      # for a step
+      - run: echo "::add-path::/opt/tools"
+        env:
+          ACTIONS_ALLOW_UNSECURE_COMMANDS: true

@@ -1,0 +1,30 @@
+# VULNERABLE EXAMPLE for the "debug-artefacts" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/debug-artefacts.yml --debug-rules
+# expect: debug-artefacts=3
+
+# A debug rule (--debug-rules) that lists the workflows that upload artifacts: look at what they contain (tokens,
+# .git/config, environment files...) and who can download them.
+name: Build
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # three uploads
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: |
+            coverage/
+            reports/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: logs
+          path: ${{ runner.temp }}/logs

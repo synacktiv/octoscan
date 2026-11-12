@@ -1,0 +1,34 @@
+# VULNERABLE EXAMPLE for the "local-action" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/local-action.yml
+# expect: local-action=4
+
+# A local action ("./path") is read from the checked out files. In a privileged workflow that checks out the PR, the
+# attacker edits the action and gets code execution with the secrets.
+name: Build fork
+
+on:
+  pull_request_target:
+
+jobs:
+  # local actions after the checkout of the PR
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: ./.github/actions/setup
+      - uses: ./.github/actions/build
+        with:
+          token: ${{ secrets.DEPLOY_TOKEN }}
+
+  # the new syntax of a same-repository action
+  same-repository:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: $/.github/actions/lint
+
+  # a local reusable workflow
+  reusable:
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit

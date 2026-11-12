@@ -31,7 +31,7 @@ var ToctouRefRegexp = regexp.MustCompile(`(?i)refs/pull/|head\.ref\b|\bhead_ref\
 var ToctouSHARegexp = regexp.MustCompile(`(?i)\.sha\b|_sha\b`)
 
 // ToctouScriptRegexp matches shell commands that check out the current head of a PR.
-var ToctouScriptRegexp = regexp.MustCompile(`gh pr checkout|refs/pull/|\bpull/[^\s/]+/(?:head|merge)\b`)
+var ToctouScriptRegexp = regexp.MustCompile(`gh pr checkout|refs/pull/|\bpull/(?:\$\{\{[^}]*\}\}|[^\s/]+)/(?:head|merge)\b`)
 
 // ForkRepositoryRegexp matches a checkout repository that is the head repository of a PR.
 var ForkRepositoryRegexp = regexp.MustCompile(`(?i)head[._]repo`)

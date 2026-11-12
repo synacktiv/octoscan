@@ -1,0 +1,15 @@
+# VULNERABLE EXAMPLE for the "debug-external-trigger" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/debug-external-trigger-comment-bot.yml --debug-rules --filter-triggers external
+# expect: debug-external-trigger=1
+
+name: Comment bot
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo replying

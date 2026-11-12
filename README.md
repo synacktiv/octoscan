@@ -45,6 +45,8 @@
 - [Credits](#credits)
 - [Resources](#resources)
 
+Vulnerable workflows for each rule are in [testdata](testdata/README.md), to try the rules: `./octoscan scan testdata`.
+
 ## Installation
 
 ```

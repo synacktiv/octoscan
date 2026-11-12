@@ -1,0 +1,73 @@
+# VULNERABLE EXAMPLE for the "toctou" rule, do not use it as a template.
+# Run:    ./octoscan scan testdata/toctou.yml
+# expect: toctou=7
+
+# TOCTOU (time of check, time of use): somebody approves a PR with a comment, a manual run or a label, and the job then
+# checks out "the PR". The author pushes a malicious commit between the approval and the checkout and the maintainer
+# approved something else. Check out the commit that was reviewed (a SHA).
+name: Test PR
+
+on:
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: Number of the PR
+      ref:
+        description: Ref to test
+  pull_request_target:
+    types: [labeled]
+
+jobs:
+  # /test in a comment: the head of the PR when the job starts
+  comment:
+    if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '/test')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/head
+      - run: make test
+
+  # the number of the PR and a ref given by the maintainer
+  dispatch:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ inputs.pr }}/merge
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+  # "safe to test" label then the branch of the PR (not its commit)
+  label:
+    if: github.event.label.name == 'safe to test'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - run: make test
+
+  # the GitHub CLI and git, in scripts
+  script:
+    if: github.event_name == 'issue_comment'
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh pr checkout ${{ github.event.issue.number }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - run: git fetch origin pull/${{ github.event.issue.number }}/head
+      - run: git fetch origin refs/pull/${{ github.event.issue.number }}/merge
+
+  # not reported: the commit of the event is pinned
+  pinned:
+    if: github.event_name == 'pull_request_target'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}

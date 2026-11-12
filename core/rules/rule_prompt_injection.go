@@ -178,6 +178,13 @@ func (rule *RulePromptInjection) checkAgent(e *actionlint.ExecAction, agent stri
 			rule.Errorf(v.Pos, "%s can be triggered by anyone (\"allowed_non_write_users: *\"): any issue or comment is a prompt injection with access to secrets.", agent)
 		}
 
+		// the base action has its own input for the tools, the other has them in the arguments
+		if v := value("allowed_tools"); v != nil {
+			if loc := bareBashToolRegexp.FindStringIndex(v.Value); loc != nil {
+				rule.Errorf(posInString(v.Value, v.Pos, v.Quoted, loc[0]+strings.Index(v.Value[loc[0]:loc[1]], "Bash")), "%s is allowed to run any shell command (the \"Bash\" tool without a restriction): a prompt injection is a remote code execution. Allow only the commands needed, like \"Bash(git status:*)\".", agent)
+			}
+		}
+
 		if v := value("claude_args"); v != nil {
 			if i := strings.Index(v.Value, "--dangerously-skip-permissions"); i >= 0 {
 				rule.Errorf(posInString(v.Value, v.Pos, v.Quoted, i), "%s runs with \"--dangerously-skip-permissions\": the agent runs any tool without asking.", agent)
