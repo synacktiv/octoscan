@@ -3,6 +3,7 @@ package core
 import (
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/rhysd/actionlint"
@@ -41,8 +42,55 @@ func FixPositionsWith(errs []*actionlint.Error, readFile func(string) ([]byte, e
 	}
 }
 
+// "SC2162:info:2:1:" in the message of shellcheck: the line and the column in the script
+var shellcheckPosRegexp = regexp.MustCompile(`SC\d+:\w+:(\d+):(\d+):`)
+
+// fixShellcheck moves an error of shellcheck, reported on the key of the script, to the line and column that shellcheck
+// found in the script.
+func fixShellcheck(e *actionlint.Error, src []string) bool {
+	m := shellcheckPosRegexp.FindStringSubmatch(e.Message)
+	if m == nil {
+		return false
+	}
+
+	l, _ := strconv.Atoi(m[1])
+	c, _ := strconv.Atoi(m[2])
+	line := src[e.Line-1]
+
+	if h := blockHeaderRegexp.FindStringSubmatchIndex(line); h != nil && line[h[2]] == '|' {
+		// the script starts on the next line, with the indentation of the block
+		if e.Line+l-1 < len(src) {
+			e.Line += l
+			e.Column = indentOf(src[e.Line-1]) + c
+
+			return true
+		}
+
+		return false
+	}
+
+	// "run: command": the script is the value of the key
+	if i := strings.Index(line, "run:"); i >= 0 && l == 1 {
+		start := i + len("run:")
+		start += indentOf(line[start:])
+		e.Column = start + c
+
+		if strings.HasPrefix(line[start:], `"`) || strings.HasPrefix(line[start:], "'") {
+			e.Column++
+		}
+
+		return true
+	}
+
+	return false
+}
+
 func fixPosition(e *actionlint.Error, src []string) {
 	if e.Line < 1 || e.Line > len(src) {
+		return
+	}
+
+	if e.Kind == "shellcheck" && fixShellcheck(e, src) {
 		return
 	}
 

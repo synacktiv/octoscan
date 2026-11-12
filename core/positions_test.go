@@ -3,6 +3,7 @@ package core
 import (
 	"bytes"
 	"errors"
+	"os/exec"
 	"strings"
 	"testing"
 
@@ -199,4 +200,38 @@ func TestFixPositions(t *testing.T) {
 			t.Fatalf("column %d", e.Column)
 		}
 	})
+}
+
+func TestShellcheckPositions(t *testing.T) {
+	path, err := exec.LookPath("shellcheck")
+	if err != nil {
+		t.Skip("shellcheck is not installed")
+	}
+
+	opts := &actionlint.LinterOptions{Shellcheck: path}
+
+	for _, c := range []struct{ name, step, needle string }{
+		{"block", "      - run: |\n          echo ok\n          read line\n", "read line"},
+		{"block with a dedent of 4", "      - run: |\n            echo ok\n            for f in `ls`; do echo \"$f\"; done\n", "`ls`"},
+		{"one line", "      - run: echo $FOO\n", "$FOO"},
+		{"one line, quoted", "      - run: 'echo $FOO'\n", "$FOO"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			src := step("push", c.step)
+
+			errs := lintOpts(t, "shellcheck", src, opts)
+			if len(errs) == 0 {
+				t.Fatal("no finding")
+			}
+
+			FixPositionsWith(errs, func(string) ([]byte, error) { return []byte(src), nil })
+
+			wantLine, wantCol := where(t, src, c.needle, 0)
+			for _, e := range errs {
+				if e.Line != wantLine || e.Column < wantCol-1 || e.Column > wantCol+len(c.needle) {
+					t.Errorf("at %d:%d, want %d:%d (%s)", e.Line, e.Column, wantLine, wantCol, e.Message)
+				}
+			}
+		})
+	}
 }
