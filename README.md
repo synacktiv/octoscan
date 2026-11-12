@@ -344,7 +344,7 @@ You can find all the exploitation details here: https://www.synacktiv.com/public
 
 ### known-vulnerability
 
-Search for known vulnerable actions based on [osv.dev](https://osv.dev/list?ecosystem=GitHub+Actions&q=).
+Search for known vulnerable actions based on the reviewed GitHub Actions advisories of the [GitHub Advisory Database](https://github.com/advisories?query=type%3Areviewed+ecosystem%3Aactions). Only a compact list (id, action, vulnerable range) is embedded, refresh it with `go run ./tools/ghsa > core/rules/assets/ghsa.json`.
 
 ### dangerous-artefact
 

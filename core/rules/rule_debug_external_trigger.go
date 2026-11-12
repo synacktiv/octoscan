@@ -1,7 +1,7 @@
 package rules
 
 import (
-	"github.com/synacktiv/octoscan/common"
+	"slices"
 
 	"github.com/rhysd/actionlint"
 )
@@ -25,7 +25,7 @@ func NewRuleDebugExternalTrigger(filterTriggers []string) *RuleDebugExternalTrig
 func (rule *RuleDebugExternalTrigger) VisitWorkflowPre(n *actionlint.Workflow) error {
 	// check on event and set skip if needed
 	for _, event := range n.On {
-		if common.IsStringInArray(rule.filterTriggers, event.EventName()) {
+		if slices.Contains(rule.filterTriggers, event.EventName()) {
 			if n.Name != nil {
 				rule.Errorf(
 					n.Name.Pos,

@@ -3,6 +3,7 @@ package rules
 import (
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 	"time"
 
@@ -66,9 +67,14 @@ var knownOrgs = []string{
 	"wearerequired",
 }
 
+type actionUse struct {
+	spec string
+	pos  *actionlint.Pos
+}
+
 type RuleRepoJacking struct {
 	actionlint.RuleBase
-	allActions map[string][]map[string]*actionlint.Pos
+	actionsByOwner map[string][]actionUse
 }
 
 // NewRuleRepoJacking creates new RuleRepoJacking instance.
@@ -78,7 +84,7 @@ func NewRuleRepoJacking() *RuleRepoJacking {
 			"repo-jacking",
 			"Verify that external actions are pointing to a valid GitHub user or organization.",
 		),
-		allActions: make(map[string][]map[string]*actionlint.Pos),
+		actionsByOwner: make(map[string][]actionUse),
 	}
 }
 
@@ -92,28 +98,28 @@ func (rule *RuleRepoJacking) VisitStep(n *actionlint.Step) error {
 	spec := e.Uses.Value
 
 	// Parse {owner}/{repo}@{ref} or {owner}/{repo}/{path}@{ref}
-	idx := strings.IndexRune(spec, '/')
-
-	if idx != -1 && !strings.HasPrefix(spec, "./") && !strings.HasPrefix(spec, "$/") && !strings.HasPrefix(spec, "docker://") {
-		owner := spec[:idx]
-
-		rule.allActions[owner] = append(rule.allActions[owner], map[string]*actionlint.Pos{spec: e.Uses.Pos})
+	// "./" and "$/" are references to the caller repository
+	owner, _, found := strings.Cut(spec, "/")
+	if !found || owner == "." || owner == "$" || strings.HasPrefix(spec, "docker://") {
+		return nil
 	}
+
+	rule.actionsByOwner[owner] = append(rule.actionsByOwner[owner], actionUse{spec, e.Uses.Pos})
 
 	return nil
 }
 
 // VisitWorkflowPost is callback when visiting Workflow node after visiting its children
 func (rule *RuleRepoJacking) VisitWorkflowPost(n *actionlint.Workflow) error {
-	for key, value := range rule.allActions {
+	for owner, uses := range rule.actionsByOwner {
 		// don't fetch known org to prevent multiple access to the API
-		if isKnownOrg(key) {
+		if slices.Contains(knownOrgs, owner) {
 			continue
 		}
 
-		requestURL := fmt.Sprintf("https://github.com/%s", key)
-		res, err := http.Get(requestURL)
+		requestURL := "https://github.com/" + owner
 
+		status, err := fetchStatus(requestURL)
 		if err != nil {
 			rule.Errorf(
 				&actionlint.Pos{Line: 0, Col: 0},
@@ -122,43 +128,20 @@ func (rule *RuleRepoJacking) VisitWorkflowPost(n *actionlint.Workflow) error {
 				err,
 			)
 
-			return err
-		}
-
-		var sleepTime = 1
-
-		// retry while getting 429 status code
-		for res.StatusCode == http.StatusTooManyRequests {
-			common.Log.Debug(fmt.Sprintf("Got 429 while fetching GitHub sleeping %d seconds.", sleepTime))
-			time.Sleep(time.Duration(sleepTime) * time.Second)
-			sleepTime++
-
-			requestURL := fmt.Sprintf("https://github.com/%s", key)
-			res, err = http.Get(requestURL)
-
-			if err != nil {
-				rule.Errorf(
-					&actionlint.Pos{Line: 0, Col: 0},
-					"Error while fetching %q: %q. Check you internet connectivity.",
-					requestURL,
-					err,
-				)
-			}
+			// the other owners might still be reachable
+			continue
 		}
 
 		// raise an error for all associated actions call
-		if res.StatusCode != http.StatusOK {
-
-			for _, actions := range value {
-				for action, pos := range actions {
-					rule.Errorf(
-						pos,
-						"Got a %d status code while fetching %q. You might be able to perform a repo-jacking attack to takeover the %q action.",
-						res.StatusCode,
-						requestURL,
-						action,
-					)
-				}
+		if status != http.StatusOK {
+			for _, use := range uses {
+				rule.Errorf(
+					use.pos,
+					"Got a %d status code while fetching %q. You might be able to perform a repo-jacking attack to takeover the %q action.",
+					status,
+					requestURL,
+					use.spec,
+				)
 			}
 		}
 	}
@@ -166,22 +149,25 @@ func (rule *RuleRepoJacking) VisitWorkflowPost(n *actionlint.Workflow) error {
 	return nil
 }
 
-func isKnownOrg(org string) bool {
-	for _, known := range knownOrgs {
-		if known == org {
-			return true
+var httpClient = &http.Client{Timeout: 10 * time.Second}
+
+// fetchStatus returns the status code of url, waiting and retrying while GitHub answers 429.
+func fetchStatus(url string) (int, error) {
+	const maxRetries = 10
+
+	for sleepTime := 1; ; sleepTime++ {
+		res, err := httpClient.Get(url)
+		if err != nil {
+			return 0, err
 		}
+
+		res.Body.Close()
+
+		if res.StatusCode != http.StatusTooManyRequests || sleepTime > maxRetries {
+			return res.StatusCode, nil
+		}
+
+		common.Log.Debug(fmt.Sprintf("Got 429 while fetching GitHub sleeping %d seconds.", sleepTime))
+		time.Sleep(time.Duration(sleepTime) * time.Second)
 	}
-
-	return false
-}
-
-// Owners returns the external owners collected so far (used by tests).
-func (rule *RuleRepoJacking) Owners() []string {
-	res := []string{}
-	for o := range rule.allActions {
-		res = append(res, o)
-	}
-
-	return res
 }

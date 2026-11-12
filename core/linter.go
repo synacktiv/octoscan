@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 
 	"github.com/synacktiv/octoscan/common"
 	"github.com/synacktiv/octoscan/core/rules"
@@ -46,7 +47,7 @@ var (
 
 func FilterRules(include bool, rulesFiltered []string) {
 	for name := range RulesSwitch {
-		RulesSwitch[name] = (include == common.IsStringInArray(rulesFiltered, name))
+		RulesSwitch[name] = (include == slices.Contains(rulesFiltered, name))
 	}
 }
 

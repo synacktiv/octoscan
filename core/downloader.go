@@ -288,7 +288,7 @@ func (gh *GitHub) DownloadContentFromBranches(repository *github.Repository, bra
 func (gh *GitHub) DownloadContentFromBranch(repo string, branch string) error {
 	fileContent, directoryContent, res, err := gh.client.Repositories.GetContents(gh.ctx, gh.org, repo, gh.path, &github.RepositoryContentGetOptions{Ref: branch})
 
-	if res != nil && res.Status != "200 OK" {
+	if res != nil && res.StatusCode != http.StatusOK {
 		common.Log.Debug(fmt.Sprintf("Fail to get %s of repository %s (%s): path doesn't exist", gh.path, repo, branch))
 
 		return nil
@@ -300,10 +300,14 @@ func (gh *GitHub) DownloadContentFromBranch(repo string, branch string) error {
 
 	// create the dir for output
 	fp := filepath.Join(gh.outputDir, gh.org, repo, branch)
-	_ = os.MkdirAll(fp, 0755)
+	if err := os.MkdirAll(fp, 0750); err != nil {
+		return err
+	}
 
 	// used for the scanner
-	_, _ = os.Create(filepath.Join(fp, ".git"))
+	if err := os.WriteFile(filepath.Join(fp, ".git"), nil, 0600); err != nil {
+		return err
+	}
 
 	if fileContent != nil {
 		return gh.saveFileContent(fileContent, repo, branch)
@@ -375,16 +379,22 @@ func (gh *GitHub) saveFileContent(fileContent *github.RepositoryContent, repo st
 		common.Log.Error(fmt.Sprintf("fail to get file content %s from repo %s (%s): empty content", *fileContent.Name, repo, branch))
 	}
 
-	return saveFileToDisk(content, filepath.Join(gh.outputDir, gh.org, repo, branch, fileContent.GetPath()))
+	// names come from the remote, never let them escape the output directory
+	rel := filepath.Join(gh.org, repo, branch, fileContent.GetPath())
+	if !filepath.IsLocal(rel) {
+		return fmt.Errorf("refusing to write outside of the output directory: %q", rel)
+	}
+
+	return saveFileToDisk(content, filepath.Join(gh.outputDir, rel))
 }
 
 func saveFileToDisk(content string, path string) error {
 	// create the dir for output
-	// TODO
-	_ = os.MkdirAll(filepath.Dir(path), 0755)
-	err := os.WriteFile(path, []byte(content), 0600)
+	if err := os.MkdirAll(filepath.Dir(path), 0750); err != nil {
+		return fmt.Errorf("error creating directory for %s: %w", path, err)
+	}
 
-	if err != nil {
+	if err := os.WriteFile(path, []byte(content), 0600); err != nil {
 		return fmt.Errorf("error writing file (%s): %w", path, err)
 	}
 

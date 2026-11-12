@@ -1,10 +1,10 @@
 package rules
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/rhysd/actionlint"
-	"github.com/synacktiv/octoscan/common"
 )
 
 type RuleDangerousArtefact struct {
@@ -61,7 +61,7 @@ func (rule *RuleDangerousArtefact) VisitStep(n *actionlint.Step) error {
 	if strings.HasPrefix(spec, "actions/upload-artifact") {
 
 		path := e.Inputs["path"]
-		if path != nil && common.IsStringInArray(sensitivePaths, path.Value.Value) {
+		if path != nil && slices.Contains(sensitivePaths, path.Value.Value) {
 			// weird linter error
 			//nolint:typecheck
 			rule.Errorf(

@@ -81,7 +81,7 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubOutputPwsh(script string, p *a
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubOutputBash(script string, p *actionlint.Pos) {
-	posArray := searchInScript(script, common.GitHubOutputBashRegexp)
+	posArray := searchInScriptExcept(script, common.GitHubOutputBashRegexp, common.LiteralEchoRegexp)
 
 	for _, pos := range posArray {
 		err := &actionlint.ExprError{
@@ -113,7 +113,7 @@ func (rule *RuleDangerousWrite) checkWriteToGitHubEnvPwsh(script string, p *acti
 }
 
 func (rule *RuleDangerousWrite) checkWriteToGitHubEnvBash(script string, p *actionlint.Pos) {
-	posArray := searchInScript(script, common.GitHubEnvBashRexexp)
+	posArray := searchInScriptExcept(script, common.GitHubEnvBashRexexp, common.LiteralEchoRegexp)
 
 	for _, pos := range posArray {
 		err := &actionlint.ExprError{

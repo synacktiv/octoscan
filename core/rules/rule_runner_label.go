@@ -31,6 +31,7 @@ please contact me :)
 package rules
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/rhysd/actionlint"
@@ -42,6 +43,7 @@ const (
 	compatInvalid                   = 0
 	compatUbuntu2204 runnerOSCompat = 1 << iota
 	compatUbuntu2404
+	compatUbuntu2604
 	compatMacOS140
 	compatMacOS140L
 	compatMacOS140XL
@@ -55,53 +57,26 @@ const (
 	compatMacOS260XL
 	compatWindows2022
 	compatWindows2025
-	compatWindows2025VS2026
 	compatWindows11Arm
 )
 
-// https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners
-// var allGitHubHostedRunnerLabels = []string{
-// 	"windows-latest",
-// 	"windows-2022",
-// 	"windows-2019",
-// 	"windows-2016",
-// 	"ubuntu-latest",
-// 	"ubuntu-22.04",
-// 	"ubuntu-20.04",
-// 	"ubuntu-18.04",
-// 	"macos-latest",
-// 	"macos-latest-xl",
-// 	"macos-13-xl",
-// 	"macos-13",
-// 	"macos-13.0",
-// 	"macos-12-xl",
-// 	"macos-12",
-// 	"macos-12.0",
-// 	"macos-11",
-// 	"macos-11.0",
-// 	"macos-10.15",
-// }
-
-// https://docs.github.com/en/actions/hosting-your-own-runners/using-self-hosted-runners-in-a-workflow#using-default-labels-to-route-jobs
-// var selfHostedRunnerPresetOSLabels = []string{
-// 	"linux",
-// 	"macos",
-// 	"windows",
-// }
-
+// Source: https://github.com/actions/runner-images#available-images (checked November 2026).
+// Labels of one image share a value, so that using them together is not reported as a conflict.
 var defaultRunnerOSCompats = map[string]runnerOSCompat{
 	"ubuntu-slim":            compatUbuntu2404,
 	"ubuntu-latest":          compatUbuntu2404,
 	"ubuntu-latest-4-cores":  compatUbuntu2404,
 	"ubuntu-latest-8-cores":  compatUbuntu2404,
 	"ubuntu-latest-16-cores": compatUbuntu2404,
+	"ubuntu-26.04":           compatUbuntu2604,
+	"ubuntu-26.04-arm":       compatUbuntu2604,
 	"ubuntu-24.04":           compatUbuntu2404,
 	"ubuntu-24.04-arm":       compatUbuntu2404,
 	"ubuntu-22.04":           compatUbuntu2204,
 	"ubuntu-22.04-arm":       compatUbuntu2204,
-	"macos-latest-xlarge":    compatMacOS150XL,
-	"macos-latest-large":     compatMacOS150L,
-	"macos-latest":           compatMacOS150,
+	"macos-latest-xlarge":    compatMacOS260XL,
+	"macos-latest-large":     compatMacOS260L,
+	"macos-latest":           compatMacOS260,
 	"macos-26-intel":         compatMacOS260Intel,
 	"macos-26-xlarge":        compatMacOS260XL,
 	"macos-26-large":         compatMacOS260L,
@@ -113,20 +88,31 @@ var defaultRunnerOSCompats = map[string]runnerOSCompat{
 	"macos-14-xlarge":        compatMacOS140XL,
 	"macos-14-large":         compatMacOS140L,
 	"macos-14":               compatMacOS140,
-	"windows-latest":         compatWindows2022,
-	"windows-latest-8-cores": compatWindows2022,
+	"windows-latest":         compatWindows2025,
+	"windows-latest-8-cores": compatWindows2025,
 	"windows-2025":           compatWindows2025,
-	"windows-2025-vs2026":    compatWindows2025VS2026,
+	"windows-2025-vs2026":    compatWindows2025,
 	"windows-2022":           compatWindows2022,
 	"windows-11-arm":         compatWindows11Arm,
-	"linux":                  compatUbuntu2404 | compatUbuntu2204, // Note: "linux" does not always indicate Ubuntu. It might be Fedora or Arch or ...
+	"windows-11-vs2026-arm":  compatWindows11Arm,
+	"linux":                  compatUbuntu2604 | compatUbuntu2404 | compatUbuntu2204, // Note: "linux" does not always indicate Ubuntu. It might be Fedora or Arch or ...
 	"macos":                  compatMacOS260 | compatMacOS260Intel | compatMacOS260L | compatMacOS260XL | compatMacOS150 | compatMacOS150Intel | compatMacOS150L | compatMacOS150XL | compatMacOS140 | compatMacOS140L | compatMacOS140XL,
-	"windows":                compatWindows2025VS2026 | compatWindows2025 | compatWindows2022 | compatWindows11Arm,
+	"windows":                compatWindows2025 | compatWindows2022 | compatWindows11Arm,
 }
 
+// Retired GitHub-hosted labels: not self-hosted runners, so they are not reported as such.
 var knownLabels = []string{
+	"ubuntu-20.04",
 	"ubuntu-18.04",
 	"ubuntu-16.04",
+	"windows-2019",
+	"windows-2016",
+	"macos-13",
+	"macos-13-large",
+	"macos-13-xlarge",
+	"macos-12",
+	"macos-11",
+	"macos-10.15",
 }
 
 // RuleRunnerLabel is a rule to check runner label like "ubuntu-latest". There are two types of
@@ -231,12 +217,8 @@ func (rule *RuleRunnerLabel) verifyRunnerLabel(label *actionlint.String) runnerO
 		return c
 	}
 
-	// TODO
-	known := knownLabels // rule.getKnownLabels()
-	for _, k := range known {
-		if strings.EqualFold(l, k) {
-			return compatInvalid
-		}
+	if slices.ContainsFunc(knownLabels, func(k string) bool { return strings.EqualFold(l, k) }) {
+		return compatInvalid
 	}
 
 	rule.Errorf(
@@ -347,10 +329,3 @@ func (rule *RuleRunnerLabel) checkCombiCompat(comps []runnerOSCompat, labels []*
 		}
 	}
 }
-
-// func (rule *RuleRunnerLabel) getKnownLabels() []string {
-// 	if rule.RuleBase.config == nil {
-// 		return knownLabels
-// 	}
-// 	return append(knownLabels, rule.RuleBase.config.SelfHostedRunner.Labels)
-// }

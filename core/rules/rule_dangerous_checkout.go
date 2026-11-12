@@ -78,7 +78,13 @@ func (rule *RuleDangerousCheckout) checkManualCheckout(action *actionlint.ExecRu
 }
 
 func (rule *RuleDangerousCheckout) checkGitManualCheckout(action *actionlint.ExecRun) {
-	posArray := searchInScript(action.Run.Value, common.GitCheckoutBashRexexp)
+	// the name of a created branch is not a ref to check out, blank it keeping the columns
+	script := common.GitNewBranchRegexp.ReplaceAllStringFunc(action.Run.Value, func(m string) string {
+		keep := len(common.GitNewBranchRegexp.FindStringSubmatch(m)[1])
+
+		return m[:keep] + strings.Repeat("_", len(m)-keep)
+	})
+	posArray := searchInScript(script, common.GitCheckoutBashRexexp)
 
 	for _, pos := range posArray {
 		err := &actionlint.ExprError{

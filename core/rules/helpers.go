@@ -3,25 +3,32 @@ package rules
 import (
 	"bufio"
 	"regexp"
+	"slices"
 	"strings"
-
-	"github.com/synacktiv/octoscan/common"
 
 	"github.com/rhysd/actionlint"
 )
 
 func searchInScript(script string, re *regexp.Regexp) []*actionlint.Pos {
+	return searchInScriptExcept(script, re, nil)
+}
+
+// searchInScriptExcept is searchInScript ignoring the lines matching except (may be nil).
+func searchInScriptExcept(script string, re, except *regexp.Regexp) []*actionlint.Pos {
 	line := 0
 	res := []*actionlint.Pos{}
 
-	if len(strings.Split(script, "\n")) != 1 {
+	// multi-line scripts start on the line after "run: |"
+	if strings.Contains(script, "\n") {
 		line++
 	}
 
 	scanner := bufio.NewScanner(strings.NewReader(script))
 	for scanner.Scan() {
-		col := re.FindStringIndex(scanner.Text())
-		if col != nil {
+		text := scanner.Text()
+
+		col := re.FindStringIndex(text)
+		if col != nil && (except == nil || !except.MatchString(text)) {
 			res = append(res, &actionlint.Pos{
 				Line: line,
 				Col:  col[1],
@@ -59,18 +66,13 @@ func containsExpression(s string) bool {
 }
 
 func skipAnalysis(n *actionlint.Workflow, triggers []string) bool {
-	if len(triggers) > 0 {
-		for _, event := range n.On {
-			if common.IsStringInArray(triggers, event.EventName()) {
-				// don't skip, skip is false by default
-				return false
-			}
-		}
-
-		return true
+	if len(triggers) == 0 {
+		return false
 	}
 
-	return false
+	return !slices.ContainsFunc(n.On, func(event actionlint.Event) bool {
+		return slices.Contains(triggers, event.EventName())
+	})
 }
 
 func checkForSpecificActions(rule *actionlint.RuleBase, exec *actionlint.ExecAction, actions []string) {

@@ -125,7 +125,7 @@ func listRules() int {
 	availableRules := core.OnRulesCreated(*rules)
 	for _, rule := range availableRules {
 		//nolint
-		fmt.Printf("- %v\n", yellow.Sprintf(rule.Name()))
+		fmt.Printf("- %v\n", yellow.Sprint(rule.Name()))
 		//nolint
 		fmt.Printf("\t%v\n", rule.Description())
 	}

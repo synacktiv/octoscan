@@ -2,7 +2,6 @@ package common
 
 import (
 	"io"
-	"io/ioutil"
 	"log"
 )
 
@@ -35,16 +34,16 @@ func NewLogger() *Logger {
 	}
 
 	flags := log.Lmsgprefix | log.LstdFlags
-	l._debug = log.New(ioutil.Discard, "[DEBUG] ", 0)
+	l._debug = log.New(io.Discard, "[DEBUG] ", 0)
 	l._info = log.New(l.writer, "[INFO] ", flags)
-	l._verbose = log.New(ioutil.Discard, "[VERBOSE] ", flags)
+	l._verbose = log.New(io.Discard, "[VERBOSE] ", flags)
 	l._error = log.New(l.writer, "[ERROR] ", flags)
 	l._fatal = log.New(l.writer, "[FATAL] ", flags)
 	return &l
 }
 
 func (l *Logger) disableLogger(logger *log.Logger) {
-	logger.SetOutput(ioutil.Discard)
+	logger.SetOutput(io.Discard)
 	logger.SetFlags(0)
 }
 

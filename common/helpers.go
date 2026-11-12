@@ -24,7 +24,25 @@ var GitHubOutputPwshRegexp = regexp.MustCompile(`(?m)(?i:env):GITHUB_OUTPUT`)
 var GitHubOutputBashRegexp = regexp.MustCompile(`(?m)>>\s*"*\${*GITHUB_OUTPUT`)
 var GitHubEnvPwshRegexp = regexp.MustCompile(`(?m)(?i:env):GITHUB_ENV`)
 var GitHubEnvBashRexexp = regexp.MustCompile(`(?m)>{1,2}\s*"*\${*GITHUB_ENV`)
-var BotActor = regexp.MustCompile(`(?m)github.(triggering_)?actor\s*?(=|!)=\s*?["'].*?\[bot\]`)
+
+// BotActor matches conditions that trust an identity because it is a bot, in the forms
+// `actor == 'x[bot]'`, `'x[bot]' == actor`, `contains|startsWith|endsWith(actor, '[bot]')` and `sender.type == 'Bot'`.
+var BotActor = regexp.MustCompile(`(?m)` +
+	botIdentity + `\s*[!=]=\s*` + botName + `|` +
+	botName + `\s*[!=]=\s*` + botIdentity + `|` +
+	`(?:contains|startsWith|endsWith)\(\s*` + botIdentity + `\s*,\s*` + botName + `|` +
+	`\bgithub\.event\.sender\.type\s*[!=]=\s*["']Bot["']`)
+
+const (
+	botIdentity = `\bgithub\.(?:(?:triggering_)?actor|event\.(?:sender|pull_request\.user|issue\.user)\.login)\b`
+	botName     = `(?:"[^"]*\[bot\]"|'[^']*\[bot\]')`
+)
+
+// LiteralEchoRegexp matches lines like `echo "a=b" >> ...` whose written value has no expansion at all.
+var LiteralEchoRegexp = regexp.MustCompile(`^\s*(echo|printf)\s+(-\w+\s+)*("[^"$` + "`" + `]*"|'[^']*'|[^\s"'$` + "`" + `<>|;&]+)\s*>>`)
+
+// GitNewBranchRegexp matches the branch name of `git checkout -b <name>`, it is not a ref to check out.
+var GitNewBranchRegexp = regexp.MustCompile(`(git checkout\s+-[bB]\s+)("[^"]*"|'[^']*'|\S+)`)
 
 // GitCheckoutBashRexexp It’s not possible to include a backtick in a raw string literal (https://yourbasic.org/golang/multiline-string/)
 var GitCheckoutBashRexexp = regexp.MustCompile(`(?m)git checkout.*(\$|` + regexp.QuoteMeta("`") + `)`)
@@ -122,16 +140,6 @@ func IsDirectory(path string) bool {
 	}
 
 	return fileInfo.IsDir()
-}
-
-func IsStringInArray(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-
-	return false
 }
 
 func IsInternetAvailable() error {

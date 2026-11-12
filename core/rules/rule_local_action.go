@@ -39,7 +39,7 @@ func (rule *RuleLocalAction) VisitJobPre(j *actionlint.Job) error {
 	if j.WorkflowCall == nil {
 		return nil
 	} else {
-		if strings.HasPrefix(j.WorkflowCall.Uses.Value, "./") {
+		if isLocalRef(j.WorkflowCall.Uses.Value) {
 			rule.RuleBase.Errorf(
 				j.WorkflowCall.Uses.Pos,
 				"Use of local workflow %q",
@@ -64,7 +64,7 @@ func (rule *RuleLocalAction) VisitStep(n *actionlint.Step) error {
 
 	spec := e.Uses.Value
 
-	if strings.HasPrefix(spec, "./") {
+	if isLocalRef(spec) {
 		// Relative to repository root
 		rule.Errorf(
 			e.Uses.Pos,
@@ -74,4 +74,9 @@ func (rule *RuleLocalAction) VisitStep(n *actionlint.Step) error {
 	}
 
 	return nil
+}
+
+// isLocalRef reports whether spec points to the caller repository ("./path" or "$/path").
+func isLocalRef(spec string) bool {
+	return strings.HasPrefix(spec, "./") || strings.HasPrefix(spec, "$/")
 }
