@@ -1,19 +1,12 @@
 <div align="center">
 	:octocat:
+	<h1>octoscan</h1>
+	<p>Octoscan is a static vulnerability scanner for GitHub action workflows.</p>
+	<br>
+	<img src="img/dependabot.png"/>
+	<br>
+	<a href="https://securityscorecards.dev/viewer/?uri=github.com/synacktiv/octoscan"><img src="https://img.shields.io/ossf-scorecard/github.com/synacktiv/octoscan?label=openssf%20scorecard&style=for-the-badge" alt="OpenSSF Scoreboard"></a>
 </div>
-<h1 align="center">
-  octoscan
-</h1>
-
-<p align="center">
-   Octoscan is a static vulnerability scanner for GitHub action workflows.
-</p>
-
-<div align="center">
-  <img src="img/dependabot.png"/>
-</div>
-
-<br />
 
 ## Table of Contents
 
