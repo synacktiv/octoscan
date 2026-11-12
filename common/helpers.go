@@ -33,6 +33,9 @@ var ToctouSHARegexp = regexp.MustCompile(`(?i)\.sha\b|_sha\b`)
 // ToctouScriptRegexp matches shell commands that check out the current head of a PR.
 var ToctouScriptRegexp = regexp.MustCompile(`gh pr checkout|refs/pull/|\bpull/[^\s/]+/(?:head|merge)\b`)
 
+// ForkRepositoryRegexp matches a checkout repository that is the head repository of a PR.
+var ForkRepositoryRegexp = regexp.MustCompile(`(?i)head[._]repo`)
+
 // BotActor matches conditions that trust an identity because it is a bot, in the forms
 // `actor == 'x[bot]'`, `'x[bot]' == actor`, `contains|startsWith|endsWith(actor, '[bot]')` and `sender.type == 'Bot'`.
 var BotActor = regexp.MustCompile(`(?m)` +

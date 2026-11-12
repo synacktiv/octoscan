@@ -60,6 +60,52 @@ func TestRuleDangerousCheckout(t *testing.T) {
 	})
 }
 
+func TestRuleDangerousCheckoutPRProtection(t *testing.T) {
+	co := func(uses, input string) string {
+		return "      - uses: " + uses + "\n        with:\n          " + input + "\n"
+	}
+	const prHead = "ref: ${{ github.event.pull_request.head.sha }}"
+
+	runCases(t, "dangerous-checkout", []ruleCase{
+		// opt-out of the protection of actions/checkout v7
+		{"opt-out", step("pull_request_target", co("actions/checkout@v7", "allow-unsafe-pr-checkout: true")), 1},
+		{"opt-out with an expression", step("pull_request_target", co("actions/checkout@v7", "allow-unsafe-pr-checkout: ${{ inputs.unsafe }}")), 1},
+		{"opt-out and PR ref", step("pull_request_target", "      - uses: actions/checkout@v7\n        with:\n          allow-unsafe-pr-checkout: true\n          "+prHead+"\n"), 2},
+		{"opt-out explicitly disabled", step("pull_request_target", co("actions/checkout@v7", "allow-unsafe-pr-checkout: false")), 0},
+		// repository of the fork
+		{"fork repository", step("pull_request_target", co("actions/checkout@v7", "repository: ${{ github.event.pull_request.head.repo.full_name }}")), 1},
+		{"fork repository of a workflow_run", step("workflow_run", co("actions/checkout@v7", "repository: ${{ github.event.workflow_run.head_repository.full_name }}")), 1},
+		{"base repository", step("pull_request_target", co("actions/checkout@v7", "repository: ${{ github.repository }}")), 0},
+		{"static other repository", step("pull_request_target", co("actions/checkout@v7", "repository: octocat/hello")), 0},
+	})
+
+	notes := []struct{ name, on, uses, want string }{
+		{"floating major refuses", "pull_request_target", "actions/checkout@v4", "refuses fork pull request code"},
+		{"v7 refuses", "workflow_run", "actions/checkout@v7", "refuses fork pull request code"},
+		{"v1 is not protected", "pull_request_target", "actions/checkout@v1", "does not have the fork pull request protection"},
+		{"pinned SHA", "pull_request_target", "actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683", "is pinned"},
+		{"patch version", "pull_request_target", "actions/checkout@v4.2.2", "is pinned"},
+		{"event without the protection", "issue_comment", "actions/checkout@v4", ""},
+	}
+
+	for _, n := range notes {
+		t.Run("note "+n.name, func(t *testing.T) {
+			errs := lint(t, "dangerous-checkout", step(n.on, co(n.uses, prHead)))
+			if len(errs) != 1 {
+				t.Fatalf("got %d findings, want 1", len(errs))
+			}
+
+			if n.want == "" && strings.Contains(errs[0].Message, "protection") {
+				t.Fatalf("unexpected note: %s", errs[0].Message)
+			}
+
+			if !strings.Contains(errs[0].Message, n.want) {
+				t.Fatalf("message %q does not contain %q", errs[0].Message, n.want)
+			}
+		})
+	}
+}
+
 func TestRuleExpressionInjection(t *testing.T) {
 	runCases(t, "expression-injection", []ruleCase{
 		{"untrusted input in run", step("issues", "      - run: echo \"${{ github.event.issue.title }}\"\n"), 1},

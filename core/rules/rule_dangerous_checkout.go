@@ -1,6 +1,9 @@
 package rules
 
 import (
+	"fmt"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/synacktiv/octoscan/common"
@@ -12,6 +15,8 @@ type RuleDangerousCheckout struct {
 	actionlint.RuleBase
 	filterTriggers []string
 	skip           bool
+	// pull_request_target and workflow_run: the events where actions/checkout refuses fork PR code since v7
+	privilegedEvent bool
 }
 
 // NewRuleDangerousCheckout creates new RuleDangerousCheckout instance.
@@ -29,6 +34,9 @@ func NewRuleDangerousCheckout(filterTriggers []string) *RuleDangerousCheckout {
 func (rule *RuleDangerousCheckout) VisitWorkflowPre(n *actionlint.Workflow) error {
 	// check on event and set skip if needed
 	rule.skip = skipAnalysis(n, rule.filterTriggers)
+	rule.privilegedEvent = slices.ContainsFunc(n.On, func(e actionlint.Event) bool {
+		return e.EventName() == "pull_request_target" || e.EventName() == "workflow_run"
+	})
 
 	return nil
 }
@@ -59,17 +67,55 @@ func (rule *RuleDangerousCheckout) checkCheckoutAction(action *actionlint.ExecAc
 	spec := action.Uses.Value
 
 	// search for checkout action
-	if strings.HasPrefix(spec, "actions/checkout") {
-		// basicRegExp := regexp.MustCompile(`github.event.pull_request`)
-		ref := action.Inputs["ref"]
-
-		if ref != nil && !common.StaticRefRegexp.MatchString(ref.Value.Value) {
-			rule.Errorf(
-				ref.Value.Pos,
-				"Use of 'actions/checkout' with a custom ref.",
-			)
-		}
+	if !strings.HasPrefix(spec, "actions/checkout") {
+		return
 	}
+
+	// since v7 this input is required to check out fork PR code in a privileged event, setting it is a deliberate opt-out
+	if optOut := action.Inputs["allow-unsafe-pr-checkout"]; optOut != nil && !strings.EqualFold(strings.TrimSpace(optOut.Value.Value), "false") {
+		rule.Errorf(
+			optOut.Value.Pos,
+			"Use of 'actions/checkout' with 'allow-unsafe-pr-checkout': the protection against checkouts of fork pull requests is disabled.",
+		)
+	}
+
+	// basicRegExp := regexp.MustCompile(`github.event.pull_request`)
+	if ref := action.Inputs["ref"]; ref != nil && !common.StaticRefRegexp.MatchString(ref.Value.Value) {
+		rule.Errorf(
+			ref.Value.Pos,
+			"Use of 'actions/checkout' with a custom ref.%s",
+			rule.protectionNote(spec),
+		)
+	}
+
+	// the default branch of the fork is attacker controlled too
+	if repo := action.Inputs["repository"]; repo != nil && common.ForkRepositoryRegexp.MatchString(repo.Value.Value) {
+		rule.Errorf(
+			repo.Value.Pos,
+			"Use of 'actions/checkout' with the repository of a pull request.%s",
+			rule.protectionNote(spec),
+		)
+	}
+}
+
+// protectionNote tells if the checkout action refuses the fork PR checkouts of privileged events.
+// Only the floating major tags (v2+) got the protection of v7 backported, pinned versions need to be v7 or later.
+func (rule *RuleDangerousCheckout) protectionNote(spec string) string {
+	if !rule.privilegedEvent {
+		return ""
+	}
+
+	_, ref, _ := strings.Cut(spec, "@")
+
+	if major, err := strconv.Atoi(strings.TrimPrefix(ref, "v")); err == nil && strings.HasPrefix(ref, "v") {
+		if major >= 2 {
+			return fmt.Sprintf(" %q refuses fork pull request code in this event unless 'allow-unsafe-pr-checkout' is set.", spec)
+		}
+
+		return fmt.Sprintf(" %q does not have the fork pull request protection of actions/checkout v7.", spec)
+	}
+
+	return fmt.Sprintf(" %q is pinned: it has the fork pull request protection only if it is actions/checkout v7 or later.", spec)
 }
 
 func (rule *RuleDangerousCheckout) checkManualCheckout(action *actionlint.ExecRun) {

@@ -196,6 +196,12 @@ Triggers like `workflow_run` or `pull_request_target` run in a privileged contex
 
 ![excalidraw](img/excalidraw.png)
 
+Since [`actions/checkout` v7](https://github.blog/changelog/2026-06-18-safer-pull_request_target-defaults-for-github-actions-checkout/), the action refuses to fetch fork PR code in `pull_request_target` and `workflow_run` workflows (the protection is backported to the floating major tags `v2` and later, not to SHA, minor or patch pins). The rule reports:
+- checkouts with a custom `ref` or a `repository` that is the head repository of the PR, and tells for privileged events if the pinned version has this protection;
+- `allow-unsafe-pr-checkout`, the input that disables the protection: it is a deliberate opt-out, look at it closely.
+
+Checks done by scripts (`git`, `gh pr checkout`) and other events (`issue_comment`...) are not covered by the protection.
+
 #### examples
 
 - [FreeRDP](https://github.com/FreeRDP/FreeRDP/pull/10209)
