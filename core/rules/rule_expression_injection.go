@@ -214,8 +214,10 @@ func (rule *RuleExpressionInjection) checkSemantics(src string, line, col int, c
 		return l.Offset(), false
 	}
 
-	ok := rule.checkExprNode(expr, line, col, checkUntrusted, workflowKey)
-	return l.Offset(), ok
+	// a finding must not hide the next "${{ }}" of the string, only a parse error stops the check
+	rule.checkExprNode(expr, line, col, checkUntrusted, workflowKey)
+
+	return l.Offset(), true
 }
 
 func (rule *RuleExpressionInjection) exprError(err *actionlint.ExprError, lineBase, colBase int) {
@@ -254,40 +256,36 @@ func (rule *RuleExpressionInjection) checkExpressionInjection(expr actionlint.Ex
 	return errs
 }
 
-// that's crapy code but the rule_expression.go from actionlint enforce all expression checks
-// I just want insecure checks but I can't add new methods to non local package
+// inspectExprNode feeds the untrusted input checker with every node of expr, like actionlint does:
+// the checker knows what to do with the operators (a value that is only compared is not reported, the operands of
+// "||" and "&&" are, ...). That's crapy but the rule_expression.go from actionlint enforce all expression checks,
+// I just want insecure checks.
 func inspectExprNode(expr actionlint.ExprNode, untrusted *actionlint.UntrustedInputChecker) {
-	defer untrusted.OnVisitNodeLeave(expr)
+	skipped := 0 // depth in the operands of an operator that returns a boolean
 
-	switch e := expr.(type) {
-	case *actionlint.ObjectDerefNode:
-		checkObjectDeref(e, untrusted)
-	case *actionlint.IndexAccessNode:
-		checkIndexAccess(e, untrusted)
-	case *actionlint.ArrayDerefNode:
-		checkArrayDeref(e, untrusted)
-	case *actionlint.FuncCallNode:
-		checkFuncCall(e, untrusted)
-	}
-}
+	actionlint.VisitExprNode(expr, func(n, _ actionlint.ExprNode, entering bool) {
+		switch n.(type) {
+		case *actionlint.CompareOpNode, *actionlint.NotOpNode:
+			// "title == 'x'" is a boolean: it can't carry an injection even if the operand is untrusted
+			if entering {
+				skipped++
 
-func checkObjectDeref(n *actionlint.ObjectDerefNode, untrusted *actionlint.UntrustedInputChecker) {
-	inspectExprNode(n.Receiver, untrusted)
-}
+				return
+			}
 
-func checkIndexAccess(n *actionlint.IndexAccessNode, untrusted *actionlint.UntrustedInputChecker) {
-	inspectExprNode(n.Index, untrusted)
-	inspectExprNode(n.Operand, untrusted)
-}
+			skipped--
+		default:
+			if skipped > 0 {
+				return
+			}
+		}
 
-func checkArrayDeref(n *actionlint.ArrayDerefNode, untrusted *actionlint.UntrustedInputChecker) {
-	inspectExprNode(n.Receiver, untrusted)
-}
-
-func checkFuncCall(n *actionlint.FuncCallNode, untrusted *actionlint.UntrustedInputChecker) {
-	for _, a := range n.Args {
-		inspectExprNode(a, untrusted)
-	}
+		if entering {
+			untrusted.OnVisitNodeEnter(n)
+		} else {
+			untrusted.OnVisitNodeLeave(n)
+		}
+	})
 }
 
 // VisitWorkflowPost is callback when visiting Workflow node after visiting its children

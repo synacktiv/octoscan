@@ -36,6 +36,7 @@
 	- [dangerous-artefact](#dangerous-artefact)
 	- [overprovisioned-secrets](#overprovisioned-secrets)
 	- [toctou](#toctou)
+	- [prompt-injection](#prompt-injection)
 	- [unsound-condition](#unsound-condition)
 	- [credentials](#credentials)
 	- [shellcheck](#shellcheck)
@@ -176,6 +177,8 @@ $ octoscan scan --list-rules
 	Check for dumps (toJSON(secrets)) and dynamic accesses (secrets[...]) of the secrets context.
 - toctou
 	Check for checkouts of a mutable PR reference in workflows triggered after an approval (comment, dispatch, label).
+- prompt-injection
+	Check for AI agents that process untrusted input, that anyone can trigger or that have dangerous tools.
 - unsound-condition
 	Check for "if:" conditions that can be bypassed or that are always true.
 - debug-external-trigger
@@ -374,6 +377,16 @@ Check for `${{ toJSON(secrets) }}` and dynamic accesses like `${{ secrets[matrix
 ### toctou
 
 Time-of-check to time-of-use. In a workflow triggered by `issue_comment`, `workflow_dispatch` or `pull_request_target` with the `labeled` type, somebody approves the PR (comment, dispatch, label) and the job then checks out the PR by number, branch or input (`refs/pull/N/head`, `github.event.pull_request.head.ref`, `inputs.ref`, `gh pr checkout`...). The author can push a malicious commit between the approval and the checkout. Check out a commit SHA instead.
+
+### prompt-injection
+
+AI agents (Claude Code, Codex, Gemini CLI, GitHub AI Inference) are used to triage issues and review pull requests. They have tools, usually a shell, and run in a job with secrets and a token. When an attacker controls what the agent reads, a prompt injection is a remote code execution. Based on [PromptPwnd](https://www.aikido.dev/blog/promptpwnd-github-actions-ai-agents) (Aikido), [Backdooring Codex](https://depi.security/blog/20261111-backdooring-codex/) (Depi) and [Clinejection](https://adnanthekhan.com/posts/clinejection/) (Adnan Khan), the rule reports:
+- untrusted input (`github.event.issue.title`, `github.event.comment.body`...) in an input of the agent, directly or through a variable. An `env:` variable protects from a command injection, not from a prompt injection;
+- agents that anyone can trigger: `allowed_non_write_users: "*"` (`claude-code-action`) and `allow-users: "*"` (`codex-action`);
+- agents that can run anything: `--dangerously-skip-permissions` or an unrestricted `Bash` tool (`claude-code-action`), `safety-strategy: unsafe` and `sandbox: danger-full-access` (`codex-action`), `run_shell_command` in the settings of the Gemini CLI, `enable-github-mcp: true` (`actions/ai-inference`);
+- the output of an agent used in a script (`${{ steps.<id>.outputs.* }}`): it is as untrusted as the input of the agent.
+
+The agent does not have to read the input from the prompt: the agents fetch the issue themselves with their tools, so `allowed_non_write_users: "*"` is reported even with a static prompt. Triggering the agent also gives access to the cache of the default branch, which was used by Clinejection and Backdooring Codex to reach the release workflows by cache poisoning: the agent should not run in the same repository as a workflow that publishes from a cache.
 
 ### unsound-condition
 

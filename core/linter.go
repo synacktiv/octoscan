@@ -40,6 +40,7 @@ var (
 		"bot-check":               true,
 		"overprovisioned-secrets": true,
 		"toctou":                  true,
+		"prompt-injection":        true,
 		"unsound-condition":       true,
 		"debug-external-trigger":  true,
 		"debug-artefacts":         true,
@@ -145,6 +146,10 @@ func offlineRules() []actionlint.Rule {
 		res = append(res, rules.NewRuleToctou(FilterTriggers))
 	}
 
+	if RulesSwitch["prompt-injection"] {
+		res = append(res, rules.NewRulePromptInjection(FilterTriggers))
+	}
+
 	if RulesSwitch["unsound-condition"] {
 		res = append(res, rules.NewRuleUnsoundCondition(FilterTriggers))
 	}
@@ -195,9 +200,13 @@ func (l *OctoLinter) LintRepositoryRecurse(dir string) ([]*actionlint.Error, err
 
 		w := filepath.Join(path, ".github", "workflows")
 		if s, err := os.Stat(w); err == nil && s.IsDir() {
-			if lintErrorsBatch, err := l.LintRepository(w); err == nil {
-				lintErrors = append(lintErrors, lintErrorsBatch...)
+			lintErrorsBatch, err := l.LintRepository(w)
+			if err != nil {
+				// a directory that is not a git repository has no project: do not look like a clean scan
+				common.Log.Error(fmt.Errorf("could not scan %q: %w", w, err))
 			}
+
+			lintErrors = append(lintErrors, lintErrorsBatch...)
 
 			return fs.SkipDir
 		}

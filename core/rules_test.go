@@ -111,6 +111,14 @@ func TestRuleExpressionInjection(t *testing.T) {
 		{"untrusted input in run", step("issues", "      - run: echo \"${{ github.event.issue.title }}\"\n"), 1},
 		{"untrusted input in action input", step("issues", "      - uses: actions/foo@v1\n        with:\n          x: ${{ github.event.issue.title }}\n"), 1},
 		{"untrusted input in github-script", step("issues", "      - uses: actions/github-script@v7\n        with:\n          script: |\n            console.log(\"${{ github.event.issue.title }}\")\n"), 1},
+		{"two untrusted inputs in one string", step("issues", "      - run: echo \"${{ github.event.issue.title }} ${{ github.event.issue.body }}\"\n"), 2},
+		{"two untrusted inputs in one multi-line string", step("issues", "      - run: |\n          echo \"${{ github.event.issue.title }}\"\n          echo \"${{ github.event.issue.body }}\"\n"), 2},
+		{"two untrusted inputs in an action input", step("issues", "      - uses: actions/foo@v1\n        with:\n          x: |\n            ${{ github.event.issue.title }}\n            ${{ github.event.issue.body }}\n"), 2},
+		{"untrusted input with a fallback value", step("issues", "      - run: echo \"${{ github.event.issue.title || 'none' }}\"\n"), 1},
+		{"untrusted input in an and-or ternary", step("issues", "      - run: echo \"${{ github.event.issue.title && 'x' || github.event.issue.body }}\"\n"), 2},
+		{"untrusted input in a function", step("issues", "      - run: echo \"${{ format('{0}', github.event.issue.title) }}\"\n"), 1},
+		{"untrusted input negated", step("issues", "      - run: echo \"${{ !github.event.issue.title }}\"\n"), 0},
+		{"untrusted input only compared", step("issues", "      - run: echo \"${{ github.event.issue.title == 'x' }}\"\n"), 0},
 		{"trusted input", step("issues", "      - run: echo \"${{ github.sha }}\"\n"), 0},
 		{"input passed through env", step("issues", "      - run: echo \"$TITLE\"\n        env:\n          TITLE: ${{ github.event.issue.title }}\n"), 0},
 	})
@@ -365,4 +373,90 @@ func TestRuleUnsoundCondition(t *testing.T) {
 		{"job level condition", "on: push\njobs:\n  j:\n    if: contains('main dev', github.ref_name)\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n", 1},
 		{"no condition", step("push", "      - run: echo\n"), 0},
 	})
+}
+
+func TestRulePromptInjection(t *testing.T) {
+	agent := func(on, uses, with string) string {
+		return step(on, "      - uses: "+uses+"\n        with:\n"+with)
+	}
+
+	runCases(t, "prompt-injection", []ruleCase{
+		// Depi / OpenAI Codex: issue title and body in the prompt of codex-action with allow-users "*"
+		{"codex: issue content and allow-users *", agent("issues", "openai/codex-action@5c3f4ccdb2b8790f73d6b21751ac00e602aa0c02", `          allow-users: "*"
+          prompt: |
+            Issue title:
+            ${{ github.event.issue.title }}
+            Issue body:
+            ${{ github.event.issue.body }}
+`), 3},
+		{"codex: untrusted input only", agent("issues", "openai/codex-action@v1", "          prompt: |\n            ${{ github.event.issue.body }}\n"), 1},
+		{"codex: allow-users * only", agent("issues", "openai/codex-action@v1", "          allow-users: \"*\"\n          prompt: label the issue\n"), 1},
+		{"codex: allow-users * with a read-only sandbox is still reported", agent("issues", "openai/codex-action@v1", "          allow-users: \"*\"\n          sandbox: read-only\n          prompt: translate codex-current-issue.json\n"), 1},
+		{"codex: allowed users", agent("issues", "openai/codex-action@v1", "          allow-users: alice,bob\n          prompt: label the issue\n"), 0},
+		{"codex: unsafe safety strategy", agent("issues", "openai/codex-action@v1", "          safety-strategy: unsafe\n          prompt: label the issue\n"), 1},
+		{"codex: default safety strategy", agent("issues", "openai/codex-action@v1", "          safety-strategy: drop-sudo\n          prompt: label the issue\n"), 0},
+		{"codex: full access sandbox", agent("issues", "openai/codex-action@v1", "          sandbox: danger-full-access\n          prompt: label the issue\n"), 1},
+
+		// Aikido / Gemini CLI: the issue goes through variables, and the agent has a shell tool
+		{"gemini: variables and shell tool", step("issues", `      - uses: google-github-actions/run-gemini-cli@v0
+        env:
+          ISSUE_TITLE: '${{ github.event.issue.title }}'
+          ISSUE_BODY: '${{ github.event.issue.body }}'
+        with:
+          settings: |
+            {"coreTools": ["run_shell_command(echo)", "run_shell_command(gh issue edit)"]}
+          prompt: |
+            2. Review the issue title and body: "${ISSUE_TITLE}" and "${ISSUE_BODY}".
+`), 3},
+		{"gemini: variable of the job", "on: issues\njobs:\n  j:\n    runs-on: ubuntu-latest\n    env:\n      BODY: ${{ github.event.issue.body }}\n    steps:\n      - uses: google-github-actions/run-gemini-cli@v0\n        with:\n          prompt: summarize $BODY\n", 1},
+		{"gemini: variable used as ${{ env }}", step("issues", "      - uses: google-github-actions/run-gemini-cli@v0\n        env:\n          BODY: ${{ github.event.issue.body }}\n        with:\n          prompt: summarize ${{ env.BODY }}\n"), 1},
+		{"gemini: trusted variable", step("issues", "      - uses: google-github-actions/run-gemini-cli@v0\n        env:\n          REPO: ${{ github.repository }}\n        with:\n          prompt: summarize $REPO\n"), 0},
+		{"gemini: unused untrusted variable", step("issues", "      - uses: google-github-actions/run-gemini-cli@v0\n        env:\n          BODY: ${{ github.event.issue.body }}\n        with:\n          prompt: summarize the issue\n"), 0},
+
+		// Aikido / GitHub AI Inference
+		{"ai-inference: github mcp", agent("issues", "actions/ai-inference@v1", "          enable-github-mcp: true\n          prompt: triage\n"), 1},
+		{"ai-inference: untrusted pull request", agent("pull_request", "actions/ai-inference@v1", "          prompt: ${{ github.event.pull_request.body }}\n"), 1},
+		{"ai-inference: no mcp", agent("issues", "actions/ai-inference@v1", "          prompt: triage\n"), 0},
+
+		// Adnan Khan / Cline: claude-code-action with allowed_non_write_users and the Bash tool
+		{"claude: clinejection", agent("issues", "anthropics/claude-code-action@v1", `          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          allowed_non_write_users: "*"
+          claude_args: --model claude-opus-4-5-20251101 --allowedTools "Bash,Read,Write,Edit,Glob,Grep,WebFetch,WebSearch"
+          prompt: |
+            **Issue:** #${{ github.event.issue.number || inputs.issue_number }}
+            **Title:** ${{ github.event.issue.title || 'See issue details below' }}
+            **Author:** @${{ github.event.issue.user.login || 'See issue details below' }}
+`), 3}, // the title, allowed_non_write_users and the Bash tool (the login of the author is not untrusted for actionlint)
+		{"claude: skip permissions", agent("issues", "anthropics/claude-code-action@v1", "          claude_args: --dangerously-skip-permissions\n          prompt: triage\n"), 1},
+		{"claude: restricted Bash tool", agent("issues", "anthropics/claude-code-action@v1", "          claude_args: --allowedTools \"Bash(git status:*),Read\"\n          prompt: triage\n"), 0},
+		{"claude: other tool names", agent("issues", "anthropics/claude-code-action@v1", "          claude_args: --allowedTools \"Read,Glob,BashOutput\"\n          prompt: triage\n"), 0},
+		{"claude: number is not untrusted", agent("issues", "anthropics/claude-code-action@v1", "          prompt: triage issue ${{ github.event.issue.number }} of ${{ github.repository }}\n"), 0},
+		{"claude: base action is covered", agent("issues", "anthropics/claude-code-base-action@beta", "          prompt: ${{ github.event.comment.body }}\n"), 1},
+		{"agent name in another case", agent("issues", "Anthropics/Claude-Code-Action@v1", "          prompt: ${{ github.event.comment.body }}\n"), 1},
+
+		// not agents
+		{"other action with untrusted input", agent("issues", "actions/labeler@v5", "          title: ${{ github.event.issue.title }}\n"), 0},
+		{"action with a similar name", agent("issues", "anthropics/claude-code-action-fork@v1", "          prompt: ${{ github.event.comment.body }}\n"), 0},
+
+		// the output of the agent
+		{"agent output in a script", step("issues", "      - id: ai\n        uses: anthropics/claude-code-action@v1\n        with:\n          prompt: triage\n      - run: gh issue edit 1 --add-label '${{ steps.ai.outputs.label }}'\n"), 1},
+		{"agent output in github-script", step("issues", "      - id: ai\n        uses: openai/codex-action@v1\n        with:\n          prompt: triage\n      - uses: actions/github-script@v7\n        with:\n          script: |\n            await run('${{ steps.ai.outputs.final-message }}')\n"), 1},
+		{"agent output through the environment", step("issues", "      - id: ai\n        uses: anthropics/claude-code-action@v1\n        with:\n          prompt: triage\n      - run: echo \"$LABEL\"\n        env:\n          LABEL: ${{ steps.ai.outputs.label }}\n"), 0},
+		{"output of another step", step("issues", "      - id: ai\n        uses: anthropics/claude-code-action@v1\n        with:\n          prompt: triage\n      - id: other\n        run: echo \"x=1\" >> \"$GITHUB_OUTPUT\"\n      - run: echo '${{ steps.other.outputs.x }}'\n"), 0},
+		{"output before the agent", step("issues", "      - id: ai\n        run: echo\n      - run: echo '${{ steps.ai.outputs.x }}'\n"), 0},
+	})
+}
+
+func TestPromptInjectionReadOnlySandboxNote(t *testing.T) {
+	src := step("issues", "      - uses: openai/codex-action@v1\n        with:\n          allow-users: \"*\"\n          sandbox: read-only\n          prompt: x\n")
+
+	errs := lint(t, "prompt-injection", src)
+	if len(errs) != 1 || !strings.Contains(errs[0].Message, "read-only") {
+		t.Fatalf("unexpected findings: %v", errs)
+	}
+
+	src = strings.Replace(src, "sandbox: read-only", "sandbox: workspace-write", 1)
+	if errs = lint(t, "prompt-injection", src); len(errs) != 1 || strings.Contains(errs[0].Message, "read-only") {
+		t.Fatalf("unexpected findings: %v", errs)
+	}
 }

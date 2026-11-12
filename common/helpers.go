@@ -96,7 +96,8 @@ var SyntaxCheckErrors = []string{
 }
 
 var TriggerWithExternalData = []string{
-	"issues", // might need to verify this one
+	// issues and issue_comment run on the default branch with the secrets, and anyone can open an issue
+	"issues",
 	"issue_comment",
 	"pull_request_target",
 	"workflow_run",

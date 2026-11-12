@@ -149,3 +149,16 @@ func forEachEnvString(env *actionlint.Env, f func(*actionlint.String)) {
 		}
 	}
 }
+
+// forEnvVars calls f on every variable of env.
+func forEnvVars(env *actionlint.Env, f func(name string, value *actionlint.String)) {
+	if env == nil {
+		return
+	}
+
+	for _, v := range env.Vars {
+		if v.Value != nil {
+			f(v.Name.Value, v.Value)
+		}
+	}
+}
