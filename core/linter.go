@@ -259,8 +259,9 @@ func (l *OctoLinter) LintRepositoryRecurse(dir string) ([]*actionlint.Error, err
 		return nil, fmt.Errorf("could not read files in %q: %w", "./", err)
 	}
 
-	// no repository: the folder is a folder of workflows
-	if !found {
+	// no workflows in a folder that is not a repository: it is a folder of workflows. The root of a repository without
+	// workflows has none, its other YAML files (compose files, charts...) are not workflows.
+	if _, err := os.Stat(filepath.Join(dir, ".git")); !found && err != nil {
 		return l.lintFolder(dir)
 	}
 

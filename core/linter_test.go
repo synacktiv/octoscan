@@ -102,6 +102,16 @@ func TestScanFolders(t *testing.T) {
 		}
 	})
 
+	t.Run("the root of a repository without workflows", func(t *testing.T) {
+		repo := t.TempDir()
+		write(t, filepath.Join(repo, ".git", "HEAD"), "ref: refs/heads/main\n")
+		write(t, filepath.Join(repo, "ci.yml"), workflowInjection)
+
+		if got := scanDir(t, repo); len(got) != 0 {
+			t.Fatalf("a YAML file of the root of a repository was scanned as a workflow: %v", got)
+		}
+	})
+
 	t.Run("a folder with no repository", func(t *testing.T) {
 		bare := t.TempDir()
 		write(t, filepath.Join(bare, ".github", "workflows", "a.yml"), workflowInjection)
