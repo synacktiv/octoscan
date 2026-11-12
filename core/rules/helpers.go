@@ -92,3 +92,60 @@ func checkForSpecificAction(rule *actionlint.RuleBase, exec *actionlint.ExecActi
 		)
 	}
 }
+
+// expressionSegments returns the content of every "${{ }}" of s. When bare is true and s has none,
+// the whole of s is returned: it is an "if:" condition, which does not need the "${{ }}".
+func expressionSegments(s string, bare bool) []string {
+	if !strings.Contains(s, "${{") {
+		if bare {
+			return []string{s}
+		}
+
+		return nil
+	}
+
+	var res []string
+
+	for {
+		_, rest, found := strings.Cut(s, "${{")
+		if !found {
+			return res
+		}
+
+		inner, after, closed := strings.Cut(rest, "}}")
+		res = append(res, inner)
+
+		if !closed {
+			return res
+		}
+
+		s = after
+	}
+}
+
+// parseExpr parses the content of a "${{ }}", it returns nil when it is not valid.
+func parseExpr(src string) actionlint.ExprNode {
+	expr, err := actionlint.NewExprParser().Parse(actionlint.NewExprLexer(src + "}}"))
+	if err != nil {
+		return nil
+	}
+
+	return expr
+}
+
+// forEachEnvString calls f on every value of env.
+func forEachEnvString(env *actionlint.Env, f func(*actionlint.String)) {
+	if env == nil {
+		return
+	}
+
+	if env.Expression != nil {
+		f(env.Expression)
+	}
+
+	for _, v := range env.Vars {
+		if v.Value != nil {
+			f(v.Value)
+		}
+	}
+}

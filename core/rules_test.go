@@ -2,6 +2,7 @@ package core
 
 import (
 	"os/exec"
+	"strings"
 	"testing"
 
 	"github.com/rhysd/actionlint"
@@ -90,14 +91,44 @@ func TestRuleLocalAction(t *testing.T) {
 }
 
 func TestRuleDangerousArtefact(t *testing.T) {
-	const up = "      - uses: actions/upload-artifact@v4\n        with:\n          name: a\n          path: "
+	up := func(path string) string {
+		return "      - uses: actions/upload-artifact@v4\n        with:\n          name: a\n          path: " + path + "\n"
+	}
+	checkout := func(persist string) string {
+		if persist == "" {
+			return "      - uses: actions/checkout@v4\n"
+		}
+
+		return "      - uses: actions/checkout@v4\n        with:\n          persist-credentials: " + persist + "\n"
+	}
 
 	runCases(t, "dangerous-artefact", []ruleCase{
-		{"upload the whole workspace", step("push", up+".\n"), 1},
-		{"upload ./", step("push", up+"./\n"), 1},
-		{"upload a build dir", step("push", up+"dist/\n"), 0},
-		{"other action", step("push", "      - uses: actions/checkout@v4\n"), 0},
+		{"upload the whole workspace", step("push", up(".")), 1},
+		{"upload ./", step("push", up("./")), 1},
+		{"upload everything with a glob", step("push", up("'**'")), 1},
+		{"upload home", step("push", up("'~'")), 1},
+		{"upload hidden files glob", step("push", up("'.*'")), 1},
+		{"upload .git", step("push", up(".git/")), 1},
+		{"upload .git config", step("push", up("./.git/config")), 1},
+		{"upload .git nested in a glob", step("push", up("'**/.git/**'")), 1},
+		{"multi-line paths, one is sensitive", step("push", up("|\n            dist/\n            .git")), 1},
+		{"upload a build dir", step("push", up("dist/")), 0},
+		{"upload .github dir is not .git", step("push", up(".github/")), 0},
+		{"excluded .git", step("push", up("|\n            dist/\n            !.git")), 0},
+		{"other action", step("push", checkout("")), 0},
+		// artipacked: the checkout leaves the token in .git/config
+		{"persisted credentials and broad path", step("push", checkout("")+up(".")), 1},
+		{"explicit persisted credentials and .git", step("push", checkout("true")+up(".git")), 1},
+		{"credentials not persisted and narrow path", step("push", checkout("false")+up("dist/")), 0},
 	})
+
+	// the note about the persisted credentials is what tells the artipacked case apart
+	for persist, want := range map[string]bool{"": true, "false": false} {
+		errs := lint(t, "dangerous-artefact", step("push", checkout(persist)+up(".")))
+		if len(errs) != 1 || strings.Contains(errs[0].Message, "persist-credentials") != want {
+			t.Fatalf("persist-credentials=%q: unexpected findings %v", persist, errs)
+		}
+	}
 }
 
 func TestRuleUnsecureCommands(t *testing.T) {
@@ -213,5 +244,79 @@ func TestFilterTriggers(t *testing.T) {
 	runCases(t, "dangerous-write", []ruleCase{
 		{"matching trigger", step("pull_request_target", run), 1},
 		{"other trigger", step("push", run), 0},
+	})
+}
+
+func TestRuleOverprovisionedSecrets(t *testing.T) {
+	run := func(script string) string { return step("push", "      - run: "+script+"\n") }
+
+	runCases(t, "overprovisioned-secrets", []ruleCase{
+		{"toJSON in run", run(`echo '${{ toJSON(secrets) }}'`), 1},
+		{"toJSON case and spaces", run(`echo '${{ tojson( secrets ) }}'`), 1},
+		{"toJSON in env", step("push", "      - run: echo\n        env:\n          ALL: ${{ toJSON(secrets) }}\n"), 1},
+		{"toJSON in action input", step("push", "      - uses: actions/foo@v1\n        with:\n          x: ${{ toJSON(secrets) }}\n"), 1},
+		{"toJSON in workflow env", "on: push\nenv:\n  ALL: ${{ toJSON(secrets) }}\njobs:\n  j:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n", 1},
+		{"toJSON in reusable workflow input", "on: push\njobs:\n  j:\n    uses: org/repo/.github/workflows/a.yml@v1\n    with:\n      s: ${{ toJSON(secrets) }}\n", 1},
+		{"dynamic access with an expression", run(`echo '${{ secrets[format('"'"'KEY_{0}'"'"', matrix.env)] }}'`), 1},
+		{"dynamic access with a matrix value", run(`echo '${{ secrets[matrix.name] }}'`), 1},
+		{"static access", run(`echo '${{ secrets.TOKEN }}'`), 0},
+		{"static indexed access", run(`echo '${{ secrets['"'"'TOKEN'"'"'] }}'`), 0},
+		{"toJSON of another context", run(`echo '${{ toJSON(github.event) }}'`), 0},
+		{"shell array outside of an expression", run(`echo "${secrets[0]}"`), 0},
+	})
+}
+
+func TestRuleToctou(t *testing.T) {
+	co := func(ref string) string {
+		return "      - uses: actions/checkout@v4\n        with:\n          ref: " + ref + "\n"
+	}
+
+	runCases(t, "toctou", []ruleCase{
+		{"comment and PR number", step("issue_comment", co("refs/pull/${{ github.event.issue.number }}/head")), 1},
+		{"comment and merge ref", step("issue_comment", co("refs/pull/${{ github.event.issue.number }}/merge")), 1},
+		{"dispatch input", step("workflow_dispatch", co("${{ inputs.ref }}")), 1},
+		{"dispatch event input", step("workflow_dispatch", co("${{ github.event.inputs.pr }}")), 1},
+		{"branch name after a label", "on:\n  pull_request_target:\n    types: [labeled]\njobs:\n  j:\n    runs-on: ubuntu-latest\n    steps:\n" + co("${{ github.event.pull_request.head.ref }}"), 1},
+		{"gh pr checkout after a comment", step("issue_comment", "      - run: gh pr checkout ${{ github.event.issue.number }}\n"), 1},
+		{"fetch of the PR head", step("workflow_dispatch", "      - run: git fetch origin pull/$PR/head\n"), 1},
+		{"commit SHA input", step("workflow_dispatch", co("${{ inputs.sha }}")), 0},
+		{"head sha", step("issue_comment", co("${{ github.event.pull_request.head.sha }}")), 0},
+		{"static ref", step("workflow_dispatch", co("main")), 0},
+		{"no ref", step("issue_comment", "      - uses: actions/checkout@v4\n"), 0},
+		{"no approval step before the workflow", step("push", co("refs/pull/${{ github.event.number }}/head")), 0},
+		{"pull_request_target without label gate", step("pull_request_target", co("${{ github.event.pull_request.head.ref }}")), 0},
+		{"other script in a dispatch", step("workflow_dispatch", "      - run: git checkout main\n"), 0},
+	})
+}
+
+func TestRuleUnsoundCondition(t *testing.T) {
+	cond := func(c string) string { return step("push", "      - if: "+c+"\n        run: echo\n") }
+
+	runCases(t, "unsound-condition", []ruleCase{
+		// contains
+		{"contains with reversed arguments", cond(`contains('refs/heads/main refs/heads/dev', github.ref)`), 1},
+		{"contains with reversed arguments in an expression", cond(`${{ contains('main dev', github.ref_name) }}`), 1},
+		{"contains with a function name in another case", cond(`CONTAINS('main dev', github.ref_name)`), 1},
+		{"contains in the right order", cond(`contains(github.event.pull_request.labels.*.name, 'safe')`), 0},
+		{"contains of two literals", cond(`contains('abc', 'b')`), 0},
+		// always true
+		{"expression followed by text", cond(`${{ github.actor == 'octocat' }} && github.ref == 'refs/heads/main'`), 1},
+		{"text before an expression", cond(`always() && ${{ github.actor == 'octocat' }}`), 1},
+		{"two expressions", cond(`${{ github.actor == 'a' }} ${{ github.actor == 'b' }}`), 1},
+		{"block scalar keeps its trailing newline", step("push", "      - if: |\n          ${{ github.actor == 'octocat' }}\n        run: echo\n"), 1},
+		{"folded block scalar keeps its trailing newline", step("push", "      - if: >\n          ${{ github.actor == 'octocat' }}\n        run: echo\n"), 1},
+		{"stripped block scalar", step("push", "      - if: |-\n          ${{ github.actor == 'octocat' }}\n        run: echo\n"), 0},
+		{"only an expression", cond(`${{ github.actor == 'octocat' }}`), 0},
+		{"no braces", cond(`github.actor == 'octocat' && github.ref == 'refs/heads/main'`), 0},
+		// ternary
+		{"falsy empty string", cond(`${{ github.ref == 'refs/heads/main' && '' || 'other' }}`), 1},
+		{"falsy zero", cond(`github.event_name == 'push' && 0 || 1`), 1},
+		{"falsy false", cond(`github.event_name == 'push' && false || true`), 1},
+		{"falsy null", cond(`github.event_name == 'push' && null || 'x'`), 1},
+		{"truthy middle value", cond(`github.event_name == 'push' && 'a' || 'b'`), 0},
+		{"and without or", cond(`github.event_name == 'push' && ''`), 0},
+		// job level
+		{"job level condition", "on: push\njobs:\n  j:\n    if: contains('main dev', github.ref_name)\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo\n", 1},
+		{"no condition", step("push", "      - run: echo\n"), 0},
 	})
 }

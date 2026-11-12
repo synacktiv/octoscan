@@ -25,6 +25,14 @@ var GitHubOutputBashRegexp = regexp.MustCompile(`(?m)>>\s*"*\${*GITHUB_OUTPUT`)
 var GitHubEnvPwshRegexp = regexp.MustCompile(`(?m)(?i:env):GITHUB_ENV`)
 var GitHubEnvBashRexexp = regexp.MustCompile(`(?m)>{1,2}\s*"*\${*GITHUB_ENV`)
 
+// ToctouRefRegexp matches checkout refs that identify a PR by something mutable (number, branch, input),
+// ToctouSHARegexp the ones that are pinned to a commit.
+var ToctouRefRegexp = regexp.MustCompile(`(?i)refs/pull/|head\.ref\b|\bhead_ref\b|\.number\b|\binputs\.`)
+var ToctouSHARegexp = regexp.MustCompile(`(?i)\.sha\b|_sha\b`)
+
+// ToctouScriptRegexp matches shell commands that check out the current head of a PR.
+var ToctouScriptRegexp = regexp.MustCompile(`gh pr checkout|refs/pull/|\bpull/[^\s/]+/(?:head|merge)\b`)
+
 // BotActor matches conditions that trust an identity because it is a bot, in the forms
 // `actor == 'x[bot]'`, `'x[bot]' == actor`, `contains|startsWith|endsWith(actor, '[bot]')` and `sender.type == 'Bot'`.
 var BotActor = regexp.MustCompile(`(?m)` +

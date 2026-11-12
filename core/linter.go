@@ -25,23 +25,26 @@ var (
 	Internetavailable = true
 	DebugRules        = false
 	RulesSwitch       = map[string]bool{
-		"dangerous-action":       true,
-		"dangerous-checkout":     true,
-		"expression-injection":   true,
-		"dangerous-write":        true,
-		"local-action":           true,
-		"repo-jacking":           true,
-		"shellcheck":             true,
-		"credentials":            true,
-		"runner-label":           true,
-		"dangerous-artefact":     true,
-		"unsecure-commands":      true,
-		"known-vulnerability":    true,
-		"bot-check":              true,
-		"debug-external-trigger": true,
-		"debug-artefacts":        true,
-		"debug-js-exec":          true,
-		"debug-oidc-action":      true,
+		"dangerous-action":        true,
+		"dangerous-checkout":      true,
+		"expression-injection":    true,
+		"dangerous-write":         true,
+		"local-action":            true,
+		"repo-jacking":            true,
+		"shellcheck":              true,
+		"credentials":             true,
+		"runner-label":            true,
+		"dangerous-artefact":      true,
+		"unsecure-commands":       true,
+		"known-vulnerability":     true,
+		"bot-check":               true,
+		"overprovisioned-secrets": true,
+		"toctou":                  true,
+		"unsound-condition":       true,
+		"debug-external-trigger":  true,
+		"debug-artefacts":         true,
+		"debug-js-exec":           true,
+		"debug-oidc-action":       true,
 	}
 )
 
@@ -136,6 +139,19 @@ func offlineRules() []actionlint.Rule {
 		// run on every trigger even if specified by the user because this vulnerability
 		// can be triggered in every workflow
 		res = append(res, rules.NewRuleRuleDangerousArtefact(common.AllTriggers))
+	}
+
+	if RulesSwitch["toctou"] {
+		res = append(res, rules.NewRuleToctou(FilterTriggers))
+	}
+
+	if RulesSwitch["unsound-condition"] {
+		res = append(res, rules.NewRuleUnsoundCondition(FilterTriggers))
+	}
+
+	if RulesSwitch["overprovisioned-secrets"] {
+		// every trigger: a dumped secret context is exposed whatever starts the workflow
+		res = append(res, rules.NewRuleOverprovisionedSecrets(common.AllTriggers))
 	}
 
 	if DebugRules {

@@ -34,6 +34,9 @@
 	- [bot-check](#bot-check)
 	- [known-vulnerability](#known-vulnerability)
 	- [dangerous-artefact](#dangerous-artefact)
+	- [overprovisioned-secrets](#overprovisioned-secrets)
+	- [toctou](#toctou)
+	- [unsound-condition](#unsound-condition)
 	- [credentials](#credentials)
 	- [shellcheck](#shellcheck)
 	- [local-action](#local-action)
@@ -169,6 +172,12 @@ $ octoscan scan --list-rules
 	Check for if statements that are based on a bot identity.
 - dangerous-artefact
 	Check for workflow that upload artefacts containing sensitive files.
+- overprovisioned-secrets
+	Check for dumps (toJSON(secrets)) and dynamic accesses (secrets[...]) of the secrets context.
+- toctou
+	Check for checkouts of a mutable PR reference in workflows triggered after an approval (comment, dispatch, label).
+- unsound-condition
+	Check for "if:" conditions that can be bypassed or that are always true.
 - debug-external-trigger
 	Check for workflow that can be externally triggered.
 - debug-artefacts
@@ -349,6 +358,23 @@ Search for known vulnerable actions based on the reviewed GitHub Actions advisor
 ### dangerous-artefact
 
 Check for workflow that upload artefacts containing sensitive files like `.git/config`. This rule is based on [this article](https://unit42.paloaltonetworks.com/github-repo-artifacts-leak-tokens/).
+
+It reports uploads of the whole workspace (`.`, `**`, `~`, ...) and of the `.git` directory. When a previous `actions/checkout` of the job does not set `persist-credentials: false`, the finding says that the token stored in `.git/config` is leaked too (the "artipacked" vulnerability).
+
+### overprovisioned-secrets
+
+Check for `${{ toJSON(secrets) }}` and dynamic accesses like `${{ secrets[matrix.name] }}`. The whole secrets context ends up in the step, so a single injection or a compromised action gets every secret of the repository instead of the one it needs.
+
+### toctou
+
+Time-of-check to time-of-use. In a workflow triggered by `issue_comment`, `workflow_dispatch` or `pull_request_target` with the `labeled` type, somebody approves the PR (comment, dispatch, label) and the job then checks out the PR by number, branch or input (`refs/pull/N/head`, `github.event.pull_request.head.ref`, `inputs.ref`, `gh pr checkout`...). The author can push a malicious commit between the approval and the checkout. Check out a commit SHA instead.
+
+### unsound-condition
+
+Conditions of `if:` that do not do what they look like, based on [zizmor](https://github.com/zizmorcore/zizmor):
+- `contains('main develop', github.ref)`: the arguments are reversed, it is a substring test that a branch named `ain` passes.
+- `${{ expr }}` mixed with other text (or in a `|` / `>` block scalar that keeps a trailing newline): the condition is a non-empty string, it is always true.
+- `cond && '' || other`: when the value between `&&` and `||` is falsy (`''`, `0`, `false`, `null`), `other` is always returned.
 
 ### credentials
 
