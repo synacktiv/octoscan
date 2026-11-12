@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/synacktiv/octoscan/common"
@@ -151,8 +152,41 @@ func (rule *RuleRepoJacking) VisitWorkflowPost(n *actionlint.Workflow) error {
 
 var httpClient = &http.Client{Timeout: 10 * time.Second}
 
+// statuses of the owners already fetched: a repository has many workflows that use the same actions
+var (
+	statusCache   = map[string]int{}
+	statusCacheMu sync.Mutex
+)
+
+// ResetStatusCache forgets the owners fetched so far.
+func ResetStatusCache() {
+	statusCacheMu.Lock()
+	defer statusCacheMu.Unlock()
+
+	statusCache = map[string]int{}
+}
+
 // fetchStatus returns the status code of url, waiting and retrying while GitHub answers 429.
 func fetchStatus(url string) (int, error) {
+	statusCacheMu.Lock()
+	status, ok := statusCache[url]
+	statusCacheMu.Unlock()
+
+	if ok {
+		return status, nil
+	}
+
+	status, err := fetchStatusUncached(url)
+	if err == nil {
+		statusCacheMu.Lock()
+		statusCache[url] = status
+		statusCacheMu.Unlock()
+	}
+
+	return status, err
+}
+
+func fetchStatusUncached(url string) (int, error) {
 	const maxRetries = 10
 
 	for sleepTime := 1; ; sleepTime++ {

@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+	"sort"
 
 	"github.com/synacktiv/octoscan/common"
 	"github.com/synacktiv/octoscan/core/rules"
@@ -16,6 +17,8 @@ import (
 
 type OctoLinter struct {
 	actionlint.Linter
+	// OnFile is called with the errors of each file as soon as it is linted, to display them as the scan goes (optional).
+	OnFile func([]*actionlint.Error)
 }
 
 // not optimal but I can't pass other parameters to OnRulesCreated
@@ -190,20 +193,7 @@ func onlineRules() []actionlint.Rule {
 	return res
 }
 
-// lintWorkflows lints the workflows w of the repository root.
-//
-// actionlint finds the project of a directory in its parents: a folder of workflows that is not a repository (the
-// output of the "dl" command without its marker, the examples of a project...) would be linted as the project that
-// contains it, or fail when there is none. Only the root of a repository is linted as a project.
-func (l *OctoLinter) lintWorkflows(root, w string) ([]*actionlint.Error, error) {
-	if _, err := os.Stat(filepath.Join(root, ".git")); err == nil {
-		return l.LintRepository(w)
-	}
-
-	return l.lintFolder(w)
-}
-
-// lintFolder lints the YAML files of a folder, without the project of actionlint.
+// lintFolder lints the YAML files of a folder one by one, calling OnFile after each.
 func (l *OctoLinter) lintFolder(folder string) ([]*actionlint.Error, error) {
 	var files []string
 
@@ -216,7 +206,27 @@ func (l *OctoLinter) lintFolder(folder string) ([]*actionlint.Error, error) {
 		files = append(files, matches...)
 	}
 
-	return l.LintFiles(files, nil)
+	sort.Strings(files)
+
+	var all []*actionlint.Error
+
+	for _, f := range files {
+		errs, err := l.LintFile(f, nil)
+		if err != nil {
+			// the other files are still worth scanning
+			common.Log.Error(fmt.Errorf("could not scan %q: %w", f, err))
+
+			continue
+		}
+
+		if l.OnFile != nil && len(errs) > 0 {
+			l.OnFile(errs)
+		}
+
+		all = append(all, errs...)
+	}
+
+	return all, nil
 }
 
 // LintRepositoryRecurse search for all GitHub project recursively and run the linter
@@ -234,7 +244,7 @@ func (l *OctoLinter) LintRepositoryRecurse(dir string) ([]*actionlint.Error, err
 		if s, err := os.Stat(w); err == nil && s.IsDir() {
 			found = true
 
-			lintErrorsBatch, err := l.lintWorkflows(path, w)
+			lintErrorsBatch, err := l.lintFolder(w)
 			if err != nil {
 				common.Log.Error(fmt.Errorf("could not scan %q: %w", w, err))
 			}

@@ -77,8 +77,18 @@ func runScanner(args docopt.Opts) int {
 
 	file, _ := args.String("<target>")
 
+	// the default output is displayed as the scan goes, the other formats need all the errors
+	streamed := args["--format"] == nil
+
 	if common.IsDirectory(file) {
 		octoLinter := &core.OctoLinter{Linter: *l}
+		if streamed {
+			octoLinter.OnFile = func(batch []*actionlint.Error) {
+				core.FixPositions(batch)
+				printErrors(os.Stdout, batch, opts.Oneline)
+			}
+		}
+
 		errs, err = octoLinter.LintRepositoryRecurse(file)
 	} else {
 		errs, err = l.LintFile(file, nil)
@@ -90,11 +100,14 @@ func runScanner(args docopt.Opts) int {
 		return common.ExitStatusFailure
 	}
 
-	core.FixPositions(errs)
-
-	if args["--format"] == nil {
-		printErrors(os.Stdout, errs, opts.Oneline)
+	if streamed {
+		if !common.IsDirectory(file) {
+			core.FixPositions(errs)
+			printErrors(os.Stdout, errs, opts.Oneline)
+		}
 	} else {
+		core.FixPositions(errs)
+
 		switch format := args["--format"].(string); format {
 		case "json":
 			opts.Format = "{{json .}}"

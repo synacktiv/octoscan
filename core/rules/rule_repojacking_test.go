@@ -26,6 +26,8 @@ func repoJackingErrors(t *testing.T, transport http.RoundTripper, uses ...string
 	old := httpClient.Transport
 	httpClient.Transport = transport
 
+	ResetStatusCache()
+
 	t.Cleanup(func() { httpClient.Transport = old })
 
 	src := "on: push\njobs:\n  j:\n    runs-on: ubuntu-latest\n    steps:\n"
