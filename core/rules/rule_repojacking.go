@@ -94,7 +94,7 @@ func (rule *RuleRepoJacking) VisitStep(n *actionlint.Step) error {
 	// Parse {owner}/{repo}@{ref} or {owner}/{repo}/{path}@{ref}
 	idx := strings.IndexRune(spec, '/')
 
-	if idx != -1 && !strings.HasPrefix(spec, "./") && !strings.HasPrefix(spec, "docker://") {
+	if idx != -1 && !strings.HasPrefix(spec, "./") && !strings.HasPrefix(spec, "$/") && !strings.HasPrefix(spec, "docker://") {
 		owner := spec[:idx]
 
 		rule.allActions[owner] = append(rule.allActions[owner], map[string]*actionlint.Pos{spec: e.Uses.Pos})
@@ -174,4 +174,14 @@ func isKnownOrg(org string) bool {
 	}
 
 	return false
+}
+
+// Owners returns the external owners collected so far (used by tests).
+func (rule *RuleRepoJacking) Owners() []string {
+	res := []string{}
+	for o := range rule.allActions {
+		res = append(res, o)
+	}
+
+	return res
 }
