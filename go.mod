@@ -1,14 +1,14 @@
 module github.com/synacktiv/octoscan
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815
 	github.com/fatih/color v1.19.0
 	github.com/google/go-github v17.0.0+incompatible
-	github.com/hashicorp/go-version v1.7.0
+	github.com/hashicorp/go-version v1.9.0
 	github.com/rhysd/actionlint v1.7.12
-	golang.org/x/oauth2 v0.27.0
+	golang.org/x/oauth2 v0.38.0
 )
 
 require (
